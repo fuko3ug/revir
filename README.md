@@ -73,6 +73,7 @@ revir/
 ├── styles.css          # CSS stilleri
 ├── app.js              # JavaScript uygulama mantığı
 ├── sample_data.xml     # Örnek veri dosyası
+├── .gitignore          # Git ignore kuralları
 └── README.md           # Dokümantasyon
 ```
 

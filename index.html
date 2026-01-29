@@ -115,12 +115,12 @@
             <div class="history-panel">
                 <h2>📋 Muayene Geçmişi</h2>
                 <div class="filter-buttons">
-                    <button onclick="filterByBlock('all')" class="filter-btn active">Tümü</button>
-                    <button onclick="filterByBlock('A')" class="filter-btn">A Blok</button>
-                    <button onclick="filterByBlock('B')" class="filter-btn">B Blok</button>
-                    <button onclick="filterByBlock('C')" class="filter-btn">C Blok</button>
-                    <button onclick="filterByBlock('D')" class="filter-btn">D Blok</button>
-                    <button onclick="filterByBlock('E')" class="filter-btn">E Blok</button>
+                    <button onclick="filterByBlock('all', event)" class="filter-btn active">Tümü</button>
+                    <button onclick="filterByBlock('A', event)" class="filter-btn">A Blok</button>
+                    <button onclick="filterByBlock('B', event)" class="filter-btn">B Blok</button>
+                    <button onclick="filterByBlock('C', event)" class="filter-btn">C Blok</button>
+                    <button onclick="filterByBlock('D', event)" class="filter-btn">D Blok</button>
+                    <button onclick="filterByBlock('E', event)" class="filter-btn">E Blok</button>
                 </div>
                 <div id="examinationHistory" class="history-list">
                     <p class="no-data">Henüz kayıtlı muayene bulunmamaktadır.</p>
@@ -136,7 +136,7 @@
                 <button onclick="importFromXML()" class="btn-secondary">XML'den İçe Aktar</button>
                 <button onclick="clearAllData()" class="btn-danger">Tüm Verileri Temizle</button>
             </div>
-            <input type="file" id="xmlFileInput" accept=".xml" style="display: none;" onchange="handleFileImport(event)">
+            <input type="file" id="xmlFileInput" accept=".xml" style="display: none;" aria-label="XML dosyası seç" onchange="handleFileImport(event)">
         </div>
     </div>
 

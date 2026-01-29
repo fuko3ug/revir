@@ -10,6 +10,9 @@ const BLOCKS = {
 // 2 haftalık süre (milisaniye cinsinden)
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
+// Mesaj gösterim süresi (milisaniye cinsinden)
+const MESSAGE_DISPLAY_DURATION_MS = 5000;
+
 // LocalStorage'dan verileri yükle
 let examinations = JSON.parse(localStorage.getItem('examinations')) || [];
 
@@ -134,6 +137,14 @@ function checkEligibility(cell, prisonerName, examinationDate) {
     };
 }
 
+// HTML içeriğini güvenli hale getir (XSS önleme)
+function escapeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // Muayene geçmişini göster
 function displayExaminationHistory(filter = 'all', searchTerm = '') {
     const historyContainer = document.getElementById('examinationHistory');
@@ -170,8 +181,8 @@ function displayExaminationHistory(filter = 'all', searchTerm = '') {
             <div class="history-item ${isEligibleNow ? 'eligible' : 'not-eligible'}">
                 <div class="history-item-header">
                     <div>
-                        <div class="prisoner-info">${exam.prisonerName}</div>
-                        <div class="cell-info">${exam.block} Blok - ${exam.cell.toUpperCase()}</div>
+                        <div class="prisoner-info">${escapeHTML(exam.prisonerName)}</div>
+                        <div class="cell-info">${escapeHTML(exam.block)} Blok - ${escapeHTML(exam.cell.toUpperCase())}</div>
                     </div>
                     <div class="examination-date">${formatDate(examDate)}</div>
                 </div>
@@ -181,8 +192,8 @@ function displayExaminationHistory(filter = 'all', searchTerm = '') {
                         `⏳ Sonraki muayene hakkı: ${formatDate(nextEligibleDate)}`
                     }
                 </div>
-                ${exam.notes ? `<div class="notes">📝 ${exam.notes}</div>` : ''}
-                <button class="delete-btn" onclick="deleteExamination('${exam.id}')">🗑️ Sil</button>
+                ${exam.notes ? `<div class="notes">📝 ${escapeHTML(exam.notes)}</div>` : ''}
+                <button class="delete-btn" onclick="deleteExamination('${escapeHTML(exam.id)}')">🗑️ Sil</button>
             </div>
         `;
     }).join('');
@@ -199,12 +210,14 @@ function deleteExamination(id) {
 }
 
 // Blok filtreleme
-function filterByBlock(block) {
+function filterByBlock(block, event) {
     // Aktif buton stilini güncelle
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
     
     displayExaminationHistory(block);
 }
@@ -290,12 +303,29 @@ function handleFileImport(event) {
             
             for (let i = 0; i < muayeneNodes.length; i++) {
                 const node = muayeneNodes[i];
+                const block = getXMLValue(node, 'blok');
+                const cell = getXMLValue(node, 'kogus');
+                const prisonerName = getXMLValue(node, 'mahkumAdi');
+                const examinationDate = getXMLValue(node, 'muayeneTarihi');
+                
+                // Gerekli alanları doğrula
+                if (!block || !cell || !prisonerName || !examinationDate) {
+                    console.warn(`Eksik veri içeren kayıt atlandı: ${i + 1}`);
+                    continue;
+                }
+                
+                // Blok geçerliliğini kontrol et
+                if (!BLOCKS[block]) {
+                    console.warn(`Geçersiz blok: ${block}, kayıt atlandı`);
+                    continue;
+                }
+                
                 const examination = {
                     id: getXMLValue(node, 'id') || Date.now().toString() + i,
-                    block: getXMLValue(node, 'blok'),
-                    cell: getXMLValue(node, 'kogus'),
-                    prisonerName: getXMLValue(node, 'mahkumAdi'),
-                    examinationDate: getXMLValue(node, 'muayeneTarihi'),
+                    block: block,
+                    cell: cell,
+                    prisonerName: prisonerName,
+                    examinationDate: examinationDate,
                     notes: getXMLValue(node, 'notlar'),
                     createdAt: getXMLValue(node, 'kayitTarihi') || new Date().toISOString()
                 };
@@ -309,6 +339,11 @@ function handleFileImport(event) {
             // Mevcut verilerle birleştir (ID çakışmalarını önle)
             const existingIds = new Set(examinations.map(e => e.id));
             const newData = importedData.filter(e => !existingIds.has(e.id));
+            
+            if (newData.length === 0) {
+                showMessage('⚠️ Tüm kayıtlar zaten mevcut, hiçbir yeni kayıt içe aktarılmadı.', 'warning');
+                return;
+            }
             
             examinations = [...examinations, ...newData];
             saveToLocalStorage();
@@ -365,10 +400,15 @@ function showMessage(message, type) {
     messageDiv.textContent = message;
     messageDiv.className = `message ${type}`;
     
-    // 5 saniye sonra mesajı gizle
-    setTimeout(() => {
-        messageDiv.style.display = 'none';
-    }, 5000);
+    // Önceki timeout'u temizle
+    if (messageDiv.timeoutId) {
+        clearTimeout(messageDiv.timeoutId);
+    }
+    
+    // Yeni timeout ayarla
+    messageDiv.timeoutId = setTimeout(() => {
+        messageDiv.className = 'message';
+    }, MESSAGE_DISPLAY_DURATION_MS);
 }
 
 // Tarih formatlama
