@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<revirMuayeneleri>
+  <metadata>
+    <exportDate>2026-01-29T11:16:50.000Z</exportDate>
+    <totalRecords>5</totalRecords>
+    <description>Cezaevi Revir Muayene Sistemi - Örnek Veri</description>
+  </metadata>
+  <muayeneler>
+    <muayene>
+      <id>1738150610001</id>
+      <blok>D</blok>
+      <kogus>d1</kogus>
+      <mahkumAdi>Ahmet Yılmaz</mahkumAdi>
+      <muayeneTarihi>2026-01-20</muayeneTarihi>
+      <notlar>Grip şikayeti</notlar>
+      <kayitTarihi>2026-01-20T10:00:00.000Z</kayitTarihi>
+    </muayene>
+    <muayene>
+      <id>1738150610002</id>
+      <blok>E</blok>
+      <kogus>e5</kogus>
+      <mahkumAdi>Mehmet Demir</mahkumAdi>
+      <muayeneTarihi>2026-01-21</muayeneTarihi>
+      <notlar>Baş ağrısı</notlar>
+      <kayitTarihi>2026-01-21T09:30:00.000Z</kayitTarihi>
+    </muayene>
+    <muayene>
+      <id>1738150610003</id>
+      <blok>B</blok>
+      <kogus>b8</kogus>
+      <mahkumAdi>Ali Kaya</mahkumAdi>
+      <muayeneTarihi>2026-01-22</muayeneTarihi>
+      <notlar>Kontrol muayenesi</notlar>
+      <kayitTarihi>2026-01-22T11:00:00.000Z</kayitTarihi>
+    </muayene>
+    <muayene>
+      <id>1738150610004</id>
+      <blok>A</blok>
+      <kogus>a3</kogus>
+      <mahkumAdi>Hasan Çelik</mahkumAdi>
+      <muayeneTarihi>2026-01-23</muayeneTarihi>
+      <notlar>Diş ağrısı</notlar>
+      <kayitTarihi>2026-01-23T14:00:00.000Z</kayitTarihi>
+    </muayene>
+    <muayene>
+      <id>1738150610005</id>
+      <blok>C</blok>
+      <kogus>c7</kogus>
+      <mahkumAdi>Veli Aydın</mahkumAdi>
+      <muayeneTarihi>2026-01-24</muayeneTarihi>
+      <notlar>Genel kontrol</notlar>
+      <kayitTarihi>2026-01-24T10:30:00.000Z</kayitTarihi>
+    </muayene>
+  </muayeneler>
+</revirMuayeneleri>

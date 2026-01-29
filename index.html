@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cezaevi Revir Muayene Sistemi</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏥 Cezaevi Revir Muayene Sistemi</h1>
+            <p class="subtitle">2 Haftalık Muayene Takip Sistemi</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Sol Panel: Haftalık Program -->
+            <div class="schedule-panel">
+                <h2>📅 Haftalık Muayene Programı</h2>
+                <div class="schedule-list">
+                    <div class="schedule-item monday">
+                        <div class="day-header">
+                            <span class="day-name">Pazartesi</span>
+                            <span class="block-name">D Blok</span>
+                        </div>
+                        <div class="cells">d1 - d14 (14 koğuş)</div>
+                    </div>
+                    <div class="schedule-item tuesday">
+                        <div class="day-header">
+                            <span class="day-name">Salı</span>
+                            <span class="block-name">E Blok</span>
+                        </div>
+                        <div class="cells">e1 - e14 (14 koğuş)</div>
+                    </div>
+                    <div class="schedule-item wednesday">
+                        <div class="day-header">
+                            <span class="day-name">Çarşamba</span>
+                            <span class="block-name">B Blok</span>
+                        </div>
+                        <div class="cells">b1 - b14 (14 koğuş)</div>
+                    </div>
+                    <div class="schedule-item thursday">
+                        <div class="day-header">
+                            <span class="day-name">Perşembe</span>
+                            <span class="block-name">A Blok</span>
+                        </div>
+                        <div class="cells">a1 - a14 (14 koğuş)</div>
+                    </div>
+                    <div class="schedule-item friday">
+                        <div class="day-header">
+                            <span class="day-name">Cuma</span>
+                            <span class="block-name">C Blok</span>
+                        </div>
+                        <div class="cells">c1 - c11 (11 koğuş)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Panel: Muayene Kayıt -->
+            <div class="action-panel">
+                <h2>📝 Muayene Kaydı</h2>
+                <form id="examinationForm">
+                    <div class="form-group">
+                        <label for="block">Blok Seçiniz:</label>
+                        <select id="block" required>
+                            <option value="">-- Blok Seçiniz --</option>
+                            <option value="A">A Blok (Perşembe)</option>
+                            <option value="B">B Blok (Çarşamba)</option>
+                            <option value="C">C Blok (Cuma)</option>
+                            <option value="D">D Blok (Pazartesi)</option>
+                            <option value="E">E Blok (Salı)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cell">Koğuş Numarası:</label>
+                        <select id="cell" required>
+                            <option value="">-- Önce Blok Seçiniz --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prisonerName">Mahkum Adı Soyadı:</label>
+                        <input type="text" id="prisonerName" required placeholder="Örn: Ahmet Yılmaz">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="examinationDate">Muayene Tarihi:</label>
+                        <input type="date" id="examinationDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notlar (İsteğe Bağlı):</label>
+                        <textarea id="notes" rows="3" placeholder="Muayene ile ilgili notlar..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Muayene Kaydet</button>
+                </form>
+
+                <div id="message" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Alt Panel: Son Muayeneler ve Arama -->
+        <div class="bottom-panel">
+            <div class="search-panel">
+                <h2>🔍 Muayene Sorgulama</h2>
+                <div class="search-form">
+                    <input type="text" id="searchInput" placeholder="Mahkum adı veya koğuş numarası ile ara...">
+                    <button onclick="searchExaminations()" class="btn-secondary">Ara</button>
+                    <button onclick="clearSearch()" class="btn-secondary">Temizle</button>
+                </div>
+            </div>
+
+            <div class="history-panel">
+                <h2>📋 Muayene Geçmişi</h2>
+                <div class="filter-buttons">
+                    <button onclick="filterByBlock('all')" class="filter-btn active">Tümü</button>
+                    <button onclick="filterByBlock('A')" class="filter-btn">A Blok</button>
+                    <button onclick="filterByBlock('B')" class="filter-btn">B Blok</button>
+                    <button onclick="filterByBlock('C')" class="filter-btn">C Blok</button>
+                    <button onclick="filterByBlock('D')" class="filter-btn">D Blok</button>
+                    <button onclick="filterByBlock('E')" class="filter-btn">E Blok</button>
+                </div>
+                <div id="examinationHistory" class="history-list">
+                    <p class="no-data">Henüz kayıtlı muayene bulunmamaktadır.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Veri Yönetimi -->
+        <div class="data-management">
+            <h2>💾 Veri Yönetimi</h2>
+            <div class="data-buttons">
+                <button onclick="exportToXML()" class="btn-secondary">XML Olarak İndir</button>
+                <button onclick="importFromXML()" class="btn-secondary">XML'den İçe Aktar</button>
+                <button onclick="clearAllData()" class="btn-danger">Tüm Verileri Temizle</button>
+            </div>
+            <input type="file" id="xmlFileInput" accept=".xml" style="display: none;" onchange="handleFileImport(event)">
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
