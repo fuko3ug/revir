@@ -54,6 +54,24 @@
             </section>
         </main>
 
+        <section class="card muayene-section">
+            <h2>Muayene Listesi Oluştur</h2>
+            <div class="muayene-container">
+                <div class="search-wrapper">
+                    <input type="text" id="hastaAraInput" class="input-field" placeholder="Hasta adı yazın..." autocomplete="off">
+                    <div id="oneriListesi" class="oneri-listesi"></div>
+                </div>
+                <div id="muayeneListesi" class="muayene-listesi">
+                    <p class="empty-message">Henüz listeye hasta eklenmedi.</p>
+                </div>
+                <div class="muayene-actions">
+                    <button id="listeTemizleBtn" class="btn btn-danger">Listeyi Temizle</button>
+                    <button id="listeYazBtn" class="btn btn-primary">Muayene Listesi Yap</button>
+                </div>
+                <div id="gruplanmisListe" class="gruplanmis-liste"></div>
+            </div>
+        </section>
+
         <footer>
             <p>&copy; 2026 Revir. Tüm hakları saklıdır.</p>
         </footer>
