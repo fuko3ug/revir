@@ -104,8 +104,7 @@ fetch('hastalar.json')
     });
 
 function turkishLowerCase(str) {
-    return str.replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/Ğ/g, 'ğ').replace(/Ü/g, 'ü')
-              .replace(/Ş/g, 'ş').replace(/Ö/g, 'ö').replace(/Ç/g, 'ç').toLowerCase();
+    return str.toLocaleLowerCase('tr');
 }
 
 hastaAraInput.addEventListener('input', () => {
@@ -183,6 +182,8 @@ function hastaEkle(hasta) {
         hastaAraInput.value = '';
         oneriListesi.classList.remove('active');
         oneriListesi.innerHTML = '';
+        hastaAraInput.placeholder = 'Bu hasta zaten listede!';
+        setTimeout(() => { hastaAraInput.placeholder = 'Hasta adı yazın...'; }, 2000);
         return;
     }
     muayeneListesi.push(hasta);
@@ -210,7 +211,7 @@ function renderMuayeneListesi() {
             <td>${h.babaAdi}</td>
             <td>${h.dogumYeriTarihi}</td>
             <td>${h.kogus}</td>
-            <td><button class="sil-btn" data-idx="${i}">Sil</button></td>
+            <td><button class="sil-btn" data-tc="${h.tc}">Sil</button></td>
         </tr>`;
     });
     html += '</tbody></table>';
@@ -218,7 +219,7 @@ function renderMuayeneListesi() {
 
     muayeneListesiDiv.querySelectorAll('.sil-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            muayeneListesi.splice(parseInt(btn.dataset.idx), 1);
+            muayeneListesi = muayeneListesi.filter(h => h.tc !== btn.dataset.tc);
             renderMuayeneListesi();
             gruplanmisListe.innerHTML = '';
         });
