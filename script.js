@@ -85,6 +85,7 @@ greetingMessage.style.transition = 'opacity 0.3s ease';
 let hastalar = [];
 let muayeneListesi = [];
 let selectedIndex = -1;
+let bekleyenHasta = null; // Hasta waiting for modal confirmation
 
 const hastaAraInput = document.getElementById('hastaAraInput');
 const oneriListesi = document.getElementById('oneriListesi');
@@ -92,6 +93,83 @@ const muayeneListesiDiv = document.getElementById('muayeneListesi');
 const listeTemizleBtn = document.getElementById('listeTemizleBtn');
 const listeYazBtn = document.getElementById('listeYazBtn');
 const gruplanmisListe = document.getElementById('gruplanmisListe');
+
+// Modal elements
+const uyariModal = document.getElementById('uyariModal');
+const uyariMesaj = document.getElementById('uyariMesaj');
+const yineDeEkleBtn = document.getElementById('yineDeEkleBtn');
+const eklemeBtn = document.getElementById('eklemeBtn');
+
+// Muayene kayıt yönetimi (localStorage)
+function muayeneKayitlariGetir() {
+    try {
+        return JSON.parse(localStorage.getItem('muayeneKayitlari')) || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function muayeneKayitlariKaydet(kayitlar) {
+    localStorage.setItem('muayeneKayitlari', JSON.stringify(kayitlar));
+}
+
+function sonIkiHaftaKontrol(tc) {
+    const kayitlar = muayeneKayitlariGetir();
+    const ikiHaftaOnce = new Date();
+    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 14);
+
+    return kayitlar.find(k =>
+        k.tc === tc && new Date(k.tarih) >= ikiHaftaOnce
+    );
+}
+
+function muayeneListesiKaydet() {
+    const kayitlar = muayeneKayitlariGetir();
+    const bugun = new Date().toISOString();
+    muayeneListesi.forEach(h => {
+        kayitlar.push({
+            tc: h.tc,
+            adiSoyadi: h.adiSoyadi,
+            kogus: h.kogus,
+            tarih: bugun
+        });
+    });
+    muayeneKayitlariKaydet(kayitlar);
+}
+
+// Modal yönetimi
+function modalGoster(hasta, mevcutKayit) {
+    bekleyenHasta = hasta;
+    const kayitTarih = new Date(mevcutKayit.tarih).toLocaleDateString('tr-TR');
+    uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 2 hafta içinde muayene hakkı kullanılmış.`;
+    uyariModal.classList.add('active');
+}
+
+function modalKapat() {
+    uyariModal.classList.remove('active');
+    bekleyenHasta = null;
+}
+
+yineDeEkleBtn.addEventListener('click', () => {
+    if (bekleyenHasta) {
+        muayeneListesi.push(bekleyenHasta);
+        renderMuayeneListesi();
+    }
+    modalKapat();
+    hastaAraInput.focus();
+});
+
+eklemeBtn.addEventListener('click', () => {
+    modalKapat();
+    hastaAraInput.focus();
+});
+
+uyariModal.addEventListener('click', (e) => {
+    if (e.target === uyariModal) {
+        modalKapat();
+        hastaAraInput.focus();
+    }
+});
 
 // XML file upload functionality
 const xmlFileInput = document.getElementById('xmlFileInput');
@@ -285,11 +363,20 @@ function hastaEkle(hasta) {
         setTimeout(() => { hastaAraInput.placeholder = 'Hasta adı yazın...'; }, 2000);
         return;
     }
-    muayeneListesi.push(hasta);
+
     hastaAraInput.value = '';
     oneriListesi.classList.remove('active');
     oneriListesi.innerHTML = '';
     selectedIndex = -1;
+
+    // 2 haftalık muayene kontrolü
+    const mevcutKayit = sonIkiHaftaKontrol(hasta.tc);
+    if (mevcutKayit) {
+        modalGoster(hasta, mevcutKayit);
+        return;
+    }
+
+    muayeneListesi.push(hasta);
     renderMuayeneListesi();
 }
 
@@ -333,6 +420,9 @@ listeTemizleBtn.addEventListener('click', () => {
 
 listeYazBtn.addEventListener('click', () => {
     if (muayeneListesi.length === 0) return;
+
+    // Muayene listesini kaydet
+    muayeneListesiKaydet();
 
     const grouped = {};
     muayeneListesi.forEach(h => {
