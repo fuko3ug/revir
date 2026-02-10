@@ -93,11 +93,62 @@ const listeTemizleBtn = document.getElementById('listeTemizleBtn');
 const listeYazBtn = document.getElementById('listeYazBtn');
 const gruplanmisListe = document.getElementById('gruplanmisListe');
 
-// Load patient data from hastalar.json
-fetch('hastalar.json')
-    .then(response => response.json())
-    .then(data => {
-        hastalar = data;
+// Load patient data from tasnif.xml
+fetch('tasnif.xml')
+    .then(response => response.text())
+    .then(xmlText => {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+            throw new Error('XML parse hatası');
+        }
+        const ns = 'http://jasperreports.sourceforge.net/jasperreports/print';
+
+        const srcIdFieldMap = {
+            '23': 'adiSoyadi',
+            '27': 'babaAdi',
+            '29': 'anaAdi',
+            '25': 'dogumYeriTarihi',
+            '31': 'kogus',
+            '32': 'tc',
+            '30': 'siraNo',
+            '26': 'dosyaNo',
+            '24': 'durumu',
+            '28': 'cinsiyet',
+            '22': 'sucu'
+        };
+
+        const allReportElements = xmlDoc.getElementsByTagNameNS(ns, 'reportElement');
+        const patientFrames = [];
+        for (let i = 0; i < allReportElements.length; i++) {
+            const re = allReportElements[i];
+            if (re.getAttribute('srcId') === '21') {
+                patientFrames.push(re.parentElement);
+            }
+        }
+
+        const seenTc = new Set();
+        patientFrames.forEach(frame => {
+            const textElements = frame.getElementsByTagNameNS(ns, 'text');
+            const patient = {};
+            for (let j = 0; j < textElements.length; j++) {
+                const textEl = textElements[j];
+                const innerRe = textEl.getElementsByTagNameNS(ns, 'reportElement')[0];
+                if (innerRe) {
+                    const fieldName = srcIdFieldMap[innerRe.getAttribute('srcId')];
+                    if (fieldName) {
+                        const textContentEl = textEl.getElementsByTagNameNS(ns, 'textContent')[0];
+                        if (textContentEl) {
+                            patient[fieldName] = textContentEl.textContent;
+                        }
+                    }
+                }
+            }
+            if (patient.tc && !seenTc.has(patient.tc)) {
+                seenTc.add(patient.tc);
+                hastalar.push(patient);
+            }
+        });
     })
     .catch(err => {
         console.error('Hasta verileri yüklenemedi:', err);
