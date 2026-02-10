@@ -125,16 +125,23 @@ function sonIkiHaftaKontrol(tc) {
 
 function muayeneListesiKaydet() {
     const kayitlar = muayeneKayitlariGetir();
-    const bugun = new Date().toISOString();
+    const bugun = new Date();
+    const ikiHaftaOnce = new Date();
+    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 14);
+
+    // Eski kayıtları temizle (14 günden eski)
+    const guncelKayitlar = kayitlar.filter(k => new Date(k.tarih) >= ikiHaftaOnce);
+
+    const bugunISO = bugun.toISOString();
     muayeneListesi.forEach(h => {
-        kayitlar.push({
+        guncelKayitlar.push({
             tc: h.tc,
             adiSoyadi: h.adiSoyadi,
             kogus: h.kogus,
-            tarih: bugun
+            tarih: bugunISO
         });
     });
-    muayeneKayitlariKaydet(kayitlar);
+    muayeneKayitlariKaydet(guncelKayitlar);
 }
 
 // Modal yönetimi
