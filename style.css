@@ -237,6 +237,72 @@ footer {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+/* XML Upload */
+.xml-upload-section {
+    margin-bottom: 20px;
+}
+
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    border: 2px dashed var(--primary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    text-align: center;
+    gap: 8px;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+    background-color: rgba(52, 152, 219, 0.08);
+    border-color: #2980b9;
+}
+
+.upload-area.uploaded {
+    border-color: var(--success-color);
+    border-style: solid;
+}
+
+.upload-icon {
+    font-size: 2rem;
+}
+
+.upload-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.upload-hint {
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
+
+.upload-status {
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    min-height: 1.4em;
+}
+
+.upload-status.success {
+    color: var(--success-color);
+}
+
+.upload-status.error {
+    color: var(--danger-color);
+}
+
 /* Muayene Listesi */
 .muayene-section {
     margin-top: 20px;

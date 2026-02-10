@@ -93,66 +93,110 @@ const listeTemizleBtn = document.getElementById('listeTemizleBtn');
 const listeYazBtn = document.getElementById('listeYazBtn');
 const gruplanmisListe = document.getElementById('gruplanmisListe');
 
-// Load patient data from tasnif.xml
-fetch('tasnif.xml')
-    .then(response => response.text())
-    .then(xmlText => {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-            throw new Error('XML parse hatası');
+// XML file upload functionality
+const xmlFileInput = document.getElementById('xmlFileInput');
+const uploadArea = document.getElementById('uploadArea');
+const uploadStatus = document.getElementById('uploadStatus');
+
+function parseXmlText(xmlText) {
+    hastalar = [];
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('XML parse hatası');
+    }
+    const ns = 'http://jasperreports.sourceforge.net/jasperreports/print';
+
+    const srcIdFieldMap = {
+        '23': 'adiSoyadi',
+        '27': 'babaAdi',
+        '29': 'anaAdi',
+        '25': 'dogumYeriTarihi',
+        '31': 'kogus',
+        '32': 'tc',
+        '30': 'siraNo',
+        '26': 'dosyaNo',
+        '24': 'durumu',
+        '28': 'cinsiyet',
+        '22': 'sucu'
+    };
+
+    const allReportElements = xmlDoc.getElementsByTagNameNS(ns, 'reportElement');
+    const patientFrames = [];
+    for (let i = 0; i < allReportElements.length; i++) {
+        const re = allReportElements[i];
+        if (re.getAttribute('srcId') === '21') {
+            patientFrames.push(re.parentElement);
         }
-        const ns = 'http://jasperreports.sourceforge.net/jasperreports/print';
+    }
 
-        const srcIdFieldMap = {
-            '23': 'adiSoyadi',
-            '27': 'babaAdi',
-            '29': 'anaAdi',
-            '25': 'dogumYeriTarihi',
-            '31': 'kogus',
-            '32': 'tc',
-            '30': 'siraNo',
-            '26': 'dosyaNo',
-            '24': 'durumu',
-            '28': 'cinsiyet',
-            '22': 'sucu'
-        };
-
-        const allReportElements = xmlDoc.getElementsByTagNameNS(ns, 'reportElement');
-        const patientFrames = [];
-        for (let i = 0; i < allReportElements.length; i++) {
-            const re = allReportElements[i];
-            if (re.getAttribute('srcId') === '21') {
-                patientFrames.push(re.parentElement);
-            }
-        }
-
-        const seenTc = new Set();
-        patientFrames.forEach(frame => {
-            const textElements = frame.getElementsByTagNameNS(ns, 'text');
-            const patient = {};
-            for (let j = 0; j < textElements.length; j++) {
-                const textEl = textElements[j];
-                const innerRe = textEl.getElementsByTagNameNS(ns, 'reportElement')[0];
-                if (innerRe) {
-                    const fieldName = srcIdFieldMap[innerRe.getAttribute('srcId')];
-                    if (fieldName) {
-                        const textContentEl = textEl.getElementsByTagNameNS(ns, 'textContent')[0];
-                        if (textContentEl) {
-                            patient[fieldName] = textContentEl.textContent;
-                        }
+    const seenTc = new Set();
+    patientFrames.forEach(frame => {
+        const textElements = frame.getElementsByTagNameNS(ns, 'text');
+        const patient = {};
+        for (let j = 0; j < textElements.length; j++) {
+            const textEl = textElements[j];
+            const innerRe = textEl.getElementsByTagNameNS(ns, 'reportElement')[0];
+            if (innerRe) {
+                const fieldName = srcIdFieldMap[innerRe.getAttribute('srcId')];
+                if (fieldName) {
+                    const textContentEl = textEl.getElementsByTagNameNS(ns, 'textContent')[0];
+                    if (textContentEl) {
+                        patient[fieldName] = textContentEl.textContent;
                     }
                 }
             }
-            if (patient.tc && !seenTc.has(patient.tc)) {
-                seenTc.add(patient.tc);
-                hastalar.push(patient);
-            }
-        });
-    })
-    .catch(err => {
-        console.error('Hasta verileri yüklenemedi:', err);
+        }
+        if (patient.tc && !seenTc.has(patient.tc)) {
+            seenTc.add(patient.tc);
+            hastalar.push(patient);
+        }
     });
+}
+
+function handleXmlFile(file) {
+    if (!file || !file.name.toLowerCase().endsWith('.xml')) {
+        uploadStatus.textContent = 'Lütfen geçerli bir XML dosyası seçin!';
+        uploadStatus.className = 'upload-status error';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            parseXmlText(e.target.result);
+            uploadStatus.textContent = `"${escapeHtml(file.name)}" yüklendi – ${hastalar.length} hasta bulundu.`;
+            uploadStatus.className = 'upload-status success';
+            uploadArea.classList.add('uploaded');
+        } catch (err) {
+            uploadStatus.textContent = 'XML dosyası okunamadı: ' + err.message;
+            uploadStatus.className = 'upload-status error';
+        }
+    };
+    reader.readAsText(file);
+}
+
+xmlFileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleXmlFile(e.target.files[0]);
+    }
+});
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+        handleXmlFile(e.dataTransfer.files[0]);
+    }
+});
 
 function turkishLowerCase(str) {
     return str.toLocaleLowerCase('tr');
