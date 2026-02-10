@@ -107,6 +107,10 @@ function turkishLowerCase(str) {
     return str.toLocaleLowerCase('tr');
 }
 
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 hastaAraInput.addEventListener('input', () => {
     const query = turkishLowerCase(hastaAraInput.value.trim());
     selectedIndex = -1;
@@ -130,8 +134,8 @@ hastaAraInput.addEventListener('input', () => {
 
     oneriListesi.innerHTML = results.map((h, i) =>
         `<div class="oneri-item" data-index="${i}">
-            <strong>${h.adiSoyadi}</strong>
-            <div class="oneri-detay">${h.kogus} | TC: ${h.tc} | Baba: ${h.babaAdi}</div>
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+            <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)} | Baba: ${escapeHtml(h.babaAdi)}</div>
         </div>`
     ).join('');
     oneriListesi.classList.add('active');
@@ -206,12 +210,12 @@ function renderMuayeneListesi() {
     muayeneListesi.forEach((h, i) => {
         html += `<tr>
             <td>${i + 1}</td>
-            <td>${h.adiSoyadi}</td>
-            <td>${h.tc}</td>
-            <td>${h.babaAdi}</td>
-            <td>${h.dogumYeriTarihi}</td>
-            <td>${h.kogus}</td>
-            <td><button class="sil-btn" data-tc="${h.tc}">Sil</button></td>
+            <td>${escapeHtml(h.adiSoyadi)}</td>
+            <td>${escapeHtml(h.tc)}</td>
+            <td>${escapeHtml(h.babaAdi)}</td>
+            <td>${escapeHtml(h.dogumYeriTarihi)}</td>
+            <td>${escapeHtml(h.kogus)}</td>
+            <td><button class="sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
         </tr>`;
     });
     html += '</tbody></table>';
@@ -247,7 +251,7 @@ listeYazBtn.addEventListener('click', () => {
     let siraNo = 1;
     sortedWards.forEach(ward => {
         html += `<div class="kogus-group">
-            <div class="kogus-baslik">${ward}</div>
+            <div class="kogus-baslik">${escapeHtml(ward)}</div>
             <table>
                 <thead><tr>
                     <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Baba Adı</th><th>Doğum Yeri</th>
@@ -255,10 +259,10 @@ listeYazBtn.addEventListener('click', () => {
         grouped[ward].forEach(h => {
             html += `<tr>
                 <td>${siraNo++}</td>
-                <td>${h.adiSoyadi}</td>
-                <td>${h.tc}</td>
-                <td>${h.babaAdi}</td>
-                <td>${h.dogumYeriTarihi}</td>
+                <td>${escapeHtml(h.adiSoyadi)}</td>
+                <td>${escapeHtml(h.tc)}</td>
+                <td>${escapeHtml(h.babaAdi)}</td>
+                <td>${escapeHtml(h.dogumYeriTarihi)}</td>
             </tr>`;
         });
         html += '</tbody></table></div>';
