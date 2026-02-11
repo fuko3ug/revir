@@ -199,7 +199,15 @@ function parseJsonText(jsonText) {
     if (!Array.isArray(data)) {
         throw new Error('JSON dosyası bir dizi içermelidir');
     }
-    hastalar = data;
+    // Validate that each object has the required fields
+    const validData = data.filter(item => 
+        item && typeof item === 'object' && 
+        item.tc && item.adiSoyadi && item.kogus
+    );
+    if (validData.length === 0) {
+        throw new Error('JSON dosyasında geçerli hasta verisi bulunamadı');
+    }
+    hastalar = validData;
 }
 
 function handleXmlFile(file) {
@@ -506,7 +514,9 @@ listeKaydetBtn.addEventListener('click', () => {
         csvContent += `\n${ward}\n`;
         csvContent += '#,Adı Soyadı,TC Kimlik,Baba Adı,Doğum Yeri\n';
         grouped[ward].forEach(h => {
-            csvContent += `${siraNo++},"${h.adiSoyadi}","${h.tc}","${h.babaAdi}","${h.dogumYeriTarihi}"\n`;
+            // Escape CSV fields by replacing " with "" and wrapping in quotes
+            const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+            csvContent += `${siraNo++},${escapeCsv(h.adiSoyadi)},${escapeCsv(h.tc)},${escapeCsv(h.babaAdi)},${escapeCsv(h.dogumYeriTarihi)}\n`;
         });
     });
     

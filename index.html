@@ -60,6 +60,7 @@
                 <details class="local-file-help">
                     <summary>Yerel dosya erişimi için yardım</summary>
                     <div class="help-content">
+                        <p><strong>⚠️ Güvenlik Notu:</strong> Chrome'u özel modda çalıştırmak güvenlik risklerine neden olabilir. İşiniz bittiğinde normal Chrome'u kullanmaya geri dönün.</p>
                         <p><strong>Chrome'da yerel dosya erişimi:</strong></p>
                         <ol>
                             <li>Chrome'u kapatın</li>
@@ -67,8 +68,9 @@
                             <li>Hedef alanına şunu ekleyin: <code>--allow-file-access-from-files</code></li>
                             <li>Örnek: <code>"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files</code></li>
                             <li>Chrome'u bu kısayoldan başlatın</li>
+                            <li><strong>Önemli:</strong> İşiniz bittiğinde Chrome'u kapatıp normal şekilde tekrar açın</li>
                         </ol>
-                        <p><strong>Alternatif:</strong> Python ile yerel sunucu başlatın:</p>
+                        <p><strong>Önerilen Alternatif:</strong> Python ile yerel sunucu başlatın (daha güvenli):</p>
                         <code>python -m http.server 8000</code>
                         <p>Sonra <code>http://localhost:8000</code> adresini açın</p>
                     </div>
