@@ -7,7 +7,19 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- Entry/Splash Screen -->
+    <div id="entryScreen" class="entry-screen">
+        <div class="entry-content">
+            <h1>Revir Muayene Sistemi</h1>
+            <p class="entry-description">Hasta muayene listesi ve takvim yönetimi</p>
+            <button id="enterAppBtn" class="btn btn-primary btn-large">
+                Muayene Listesi Programına Giriş
+            </button>
+            <div id="loadingStatus" class="loading-status"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp" style="display: none;">
         <header>
             <h1>Revir Uygulaması</h1>
             <button id="themeToggleBtn" class="theme-toggle-btn" title="Tema Değiştir">🌙</button>
@@ -48,8 +60,7 @@
                 <input type="file" id="xmlFileInput" accept=".xml,.json" hidden>
                 <p id="uploadStatus" class="upload-status"></p>
                 <div class="local-file-buttons">
-                    <button id="loadLocalXmlBtn" class="btn btn-light">Yerel tasnif.xml Yükle</button>
-                    <button id="loadLocalJsonBtn" class="btn btn-light">Yerel hastalar.json Yükle</button>
+                    <button id="loadBothFilesBtn" class="btn btn-primary">Yerel Dosyaları Yükle (XML + JSON)</button>
                 </div>
                 <details class="local-file-help">
                     <summary>Yerel dosya erişimi için yardım</summary>

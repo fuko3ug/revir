@@ -1,3 +1,55 @@
+// Entry Screen
+const entryScreen = document.getElementById('entryScreen');
+const mainApp = document.getElementById('mainApp');
+const enterAppBtn = document.getElementById('enterAppBtn');
+const loadingStatus = document.getElementById('loadingStatus');
+
+// Load both files function
+async function loadBothFiles() {
+    loadingStatus.textContent = 'Dosyalar yükleniyor...';
+    loadingStatus.className = 'loading-status loading';
+    
+    try {
+        // Load hastalar.json first
+        const jsonResponse = await fetch('hastalar.json');
+        if (!jsonResponse.ok) {
+            throw new Error('hastalar.json bulunamadı');
+        }
+        const jsonText = await jsonResponse.text();
+        parseJsonText(jsonText);
+        
+        // Load tasnif.xml
+        const xmlResponse = await fetch('tasnif.xml');
+        if (!xmlResponse.ok) {
+            throw new Error('tasnif.xml bulunamadı');
+        }
+        const xmlText = await xmlResponse.text();
+        parseXmlText(xmlText);
+        
+        loadingStatus.textContent = `✓ Dosyalar başarıyla yüklendi (${hastalar.length} hasta)`;
+        loadingStatus.className = 'loading-status success';
+        
+        // Show main app after a brief delay
+        setTimeout(() => {
+            entryScreen.style.display = 'none';
+            mainApp.style.display = 'block';
+        }, 800);
+        
+        return true;
+    } catch (err) {
+        loadingStatus.textContent = '✗ Hata: ' + err.message;
+        loadingStatus.className = 'loading-status error';
+        return false;
+    }
+}
+
+// Enter app button handler
+enterAppBtn.addEventListener('click', async () => {
+    enterAppBtn.disabled = true;
+    await loadBothFiles();
+    enterAppBtn.disabled = false;
+});
+
 // Theme toggle
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 
@@ -269,33 +321,31 @@ uploadArea.addEventListener('drop', (e) => {
     }
 });
 
-// Load local files
-loadLocalXmlBtn.addEventListener('click', async () => {
-    try {
-        const response = await fetch('tasnif.xml');
-        if (!response.ok) {
-            throw new Error('Dosya bulunamadı. Lütfen tasnif.xml dosyasının aynı klasörde olduğundan emin olun.');
-        }
-        const xmlText = await response.text();
-        parseXmlText(xmlText);
-        uploadStatus.textContent = `tasnif.xml yüklendi – ${hastalar.length} hasta bulundu.`;
-        uploadStatus.className = 'upload-status success';
-        uploadArea.classList.add('uploaded');
-    } catch (err) {
-        uploadStatus.textContent = 'Hata: ' + err.message;
-        uploadStatus.className = 'upload-status error';
-    }
-});
+// Load both local files button
+const loadBothFilesBtn = document.getElementById('loadBothFilesBtn');
 
-loadLocalJsonBtn.addEventListener('click', async () => {
+loadBothFilesBtn.addEventListener('click', async () => {
+    uploadStatus.textContent = 'Dosyalar yükleniyor...';
+    uploadStatus.className = 'upload-status';
+    
     try {
-        const response = await fetch('hastalar.json');
-        if (!response.ok) {
-            throw new Error('Dosya bulunamadı. Lütfen hastalar.json dosyasının aynı klasörde olduğundan emin olun.');
+        // Load hastalar.json
+        const jsonResponse = await fetch('hastalar.json');
+        if (!jsonResponse.ok) {
+            throw new Error('hastalar.json bulunamadı');
         }
-        const jsonText = await response.text();
+        const jsonText = await jsonResponse.text();
         parseJsonText(jsonText);
-        uploadStatus.textContent = `hastalar.json yüklendi – ${hastalar.length} hasta bulundu.`;
+        
+        // Load tasnif.xml
+        const xmlResponse = await fetch('tasnif.xml');
+        if (!xmlResponse.ok) {
+            throw new Error('tasnif.xml bulunamadı');
+        }
+        const xmlText = await xmlResponse.text();
+        parseXmlText(xmlText);
+        
+        uploadStatus.textContent = `Her iki dosya yüklendi – ${hastalar.length} hasta bulundu.`;
         uploadStatus.className = 'upload-status success';
         uploadArea.classList.add('uploaded');
     } catch (err) {
@@ -676,6 +726,11 @@ function gunDetayGoster() {
         gunMuayeneListesi.innerHTML = '<p class="empty-message">Bu gün için kayıt yok.</p>';
         return;
     }
+
+    // Sort by ward (koğuş) using Turkish locale
+    gunKayitlari.sort((a, b) => {
+        return (a.kogus || '').localeCompare(b.kogus || '', 'tr');
+    });
 
     let html = `<table>
         <thead><tr>

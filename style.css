@@ -31,6 +31,63 @@ body.dark-theme {
     --border-color: #444;
 }
 
+/* Entry Screen */
+.entry-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    padding: 20px;
+}
+
+.entry-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.entry-content h1 {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.entry-description {
+    color: var(--text-color);
+    opacity: 0.8;
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+}
+
+.btn-large {
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.loading-status {
+    margin-top: 20px;
+    min-height: 30px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.loading-status.loading {
+    color: var(--primary-color);
+}
+
+.loading-status.success {
+    color: var(--success-color);
+}
+
+.loading-status.error {
+    color: var(--danger-color);
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
