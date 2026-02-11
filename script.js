@@ -99,17 +99,6 @@ let muayeneListesi = [];
 let selectedIndex = -1;
 let bekleyenHasta = null; // Hasta waiting for modal confirmation
 
-// Collapsible section for Muayene Listesi Oluştur
-const muayeneOlusturHeader = document.getElementById('muayeneOlusturHeader');
-const muayeneOlusturContainer = document.getElementById('muayeneOlusturContainer');
-
-if (muayeneOlusturHeader && muayeneOlusturContainer) {
-    muayeneOlusturHeader.addEventListener('click', () => {
-        muayeneOlusturHeader.classList.toggle('collapsed');
-        muayeneOlusturContainer.classList.toggle('collapsed');
-    });
-}
-
 const hastaAraInput = document.getElementById('hastaAraInput');
 const oneriListesi = document.getElementById('oneriListesi');
 const muayeneListesiDiv = document.getElementById('muayeneListesi');

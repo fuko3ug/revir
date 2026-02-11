@@ -810,6 +810,9 @@ body.dark-theme .help-content code {
 
     .gruplanmis-liste {
         margin-top: 5px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
     }
 
     .gruplanmis-liste .kogus-group {
@@ -1051,40 +1054,4 @@ body.dark-theme .help-content code {
     opacity: 0.85;
 }
 
-/* Collapsible section styles */
-.collapsible-header {
-    cursor: pointer;
-    user-select: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    margin: 0 -15px 15px -15px;
-    background-color: var(--card-bg);
-    border-bottom: 2px solid var(--border-color);
-    transition: background-color 0.3s ease;
-}
 
-.collapsible-header:hover {
-    background-color: var(--border-color);
-}
-
-.collapse-icon {
-    transition: transform 0.3s ease;
-    font-size: 0.8em;
-    color: var(--text-color);
-}
-
-.collapsible-header.collapsed .collapse-icon {
-    transform: rotate(-90deg);
-}
-
-.muayene-container {
-    max-height: 2000px;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-
-.muayene-container.collapsed {
-    max-height: 0;
-}
