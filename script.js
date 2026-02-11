@@ -49,14 +49,14 @@ async function loadBothFiles() {
             });
         } else {
             // Fallback: Load hastalar.json via fetch
-            var jsonText = await loadLocalFile('hastalar.json');
+            const jsonText = await loadLocalFile('hastalar.json');
             parseJsonText(jsonText);
         }
 
         // Try loading tasnif.xml but don't fail if unavailable
         // (JSON already contains the same patient data)
         try {
-            var xmlText = await loadLocalFile('tasnif.xml');
+            const xmlText = await loadLocalFile('tasnif.xml');
             parseXmlText(xmlText);
         } catch (xmlErr) {
             // XML is optional when JSON/pre-loaded data is available
@@ -81,7 +81,7 @@ async function loadBothFiles() {
         
         return true;
     } catch (err) {
-        var msg = '✗ Hata: ' + err.message;
+        let msg = '✗ Hata: ' + err.message;
         if (window.location.protocol === 'file:') {
             msg += '\n📁 file:// protokolünde çalışıyorsunuz. Lütfen dosyaları manuel olarak seçin veya yerel sunucu kullanın.';
         }
@@ -498,13 +498,13 @@ loadBothFilesBtn.addEventListener('click', async () => {
             });
         } else {
             // Fallback: Load hastalar.json via fetch
-            var jsonText = await loadLocalFile('hastalar.json');
+            const jsonText = await loadLocalFile('hastalar.json');
             parseJsonText(jsonText);
         }
         
         // Try loading tasnif.xml but don't fail if unavailable
         try {
-            var xmlText = await loadLocalFile('tasnif.xml');
+            const xmlText = await loadLocalFile('tasnif.xml');
             parseXmlText(xmlText);
         } catch (xmlErr) {
             // XML is optional when JSON/pre-loaded data is available
@@ -519,7 +519,7 @@ loadBothFilesBtn.addEventListener('click', async () => {
         uploadArea.classList.add('uploaded');
         sorgulaKogusListesiDoldur();
     } catch (err) {
-        var msg = 'Hata: ' + err.message;
+        let msg = 'Hata: ' + err.message;
         if (window.location.protocol === 'file:') {
             msg += ' – file:// protokolünde çalışıyorsunuz. Lütfen dosyaları yukarıdan manuel olarak seçin veya yerel sunucu kullanın.';
         }
