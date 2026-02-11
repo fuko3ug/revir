@@ -4,6 +4,38 @@ const mainApp = document.getElementById('mainApp');
 const enterAppBtn = document.getElementById('enterAppBtn');
 const loadingStatus = document.getElementById('loadingStatus');
 
+// Helper: load a local file using fetch with XMLHttpRequest fallback (for file:// protocol)
+function loadLocalFile(url) {
+    return new Promise((resolve, reject) => {
+        // Try fetch first
+        fetch(url).then(response => {
+            if (!response.ok) {
+                throw new Error(url + ' bulunamadı');
+            }
+            return response.text();
+        }).then(resolve).catch(() => {
+            // Fallback to XMLHttpRequest (works on file:// in some browsers)
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', url, true);
+                xhr.onload = function() {
+                    if (xhr.status === 200 || xhr.status === 0) {
+                        resolve(xhr.responseText);
+                    } else {
+                        reject(new Error(url + ' bulunamadı'));
+                    }
+                };
+                xhr.onerror = function() {
+                    reject(new Error(url + ' yüklenemedi – dosyaları manuel olarak seçin'));
+                };
+                xhr.send();
+            } catch (e) {
+                reject(new Error(url + ' yüklenemedi – dosyaları manuel olarak seçin'));
+            }
+        });
+    });
+}
+
 // Load both files function
 async function loadBothFiles() {
     loadingStatus.textContent = 'Dosyalar yükleniyor...';
@@ -11,19 +43,11 @@ async function loadBothFiles() {
     
     try {
         // Load hastalar.json first
-        const jsonResponse = await fetch('hastalar.json');
-        if (!jsonResponse.ok) {
-            throw new Error('hastalar.json bulunamadı');
-        }
-        const jsonText = await jsonResponse.text();
+        const jsonText = await loadLocalFile('hastalar.json');
         parseJsonText(jsonText);
         
         // Load tasnif.xml
-        const xmlResponse = await fetch('tasnif.xml');
-        if (!xmlResponse.ok) {
-            throw new Error('tasnif.xml bulunamadı');
-        }
-        const xmlText = await xmlResponse.text();
+        const xmlText = await loadLocalFile('tasnif.xml');
         parseXmlText(xmlText);
         
         loadingStatus.textContent = `✓ Dosyalar başarıyla yüklendi (${hastalar.length} hasta)`;
@@ -41,7 +65,11 @@ async function loadBothFiles() {
         
         return true;
     } catch (err) {
-        loadingStatus.textContent = '✗ Hata: ' + err.message;
+        let msg = '✗ Hata: ' + err.message;
+        if (window.location.protocol === 'file:') {
+            msg += '\n📁 file:// protokolünde çalışıyorsunuz. Lütfen dosyaları manuel olarak seçin veya yerel sunucu kullanın.';
+        }
+        loadingStatus.textContent = msg;
         loadingStatus.className = 'loading-status error';
         return false;
     }
@@ -54,7 +82,15 @@ enterAppBtn.addEventListener('click', async () => {
     // Only re-enable button if loading failed to allow retry
     if (!success) {
         enterAppBtn.disabled = false;
+        // Show skip button so user can enter app and load files manually
+        document.getElementById('skipEnterBtn').style.display = 'block';
     }
+});
+
+// Skip button: enter app without loading files (for file:// protocol)
+document.getElementById('skipEnterBtn').addEventListener('click', () => {
+    entryScreen.style.display = 'none';
+    mainApp.style.display = 'block';
 });
 
 // Theme toggle
@@ -440,19 +476,11 @@ loadBothFilesBtn.addEventListener('click', async () => {
     
     try {
         // Load hastalar.json
-        const jsonResponse = await fetch('hastalar.json');
-        if (!jsonResponse.ok) {
-            throw new Error('hastalar.json bulunamadı');
-        }
-        const jsonText = await jsonResponse.text();
+        const jsonText = await loadLocalFile('hastalar.json');
         parseJsonText(jsonText);
         
         // Load tasnif.xml
-        const xmlResponse = await fetch('tasnif.xml');
-        if (!xmlResponse.ok) {
-            throw new Error('tasnif.xml bulunamadı');
-        }
-        const xmlText = await xmlResponse.text();
+        const xmlText = await loadLocalFile('tasnif.xml');
         parseXmlText(xmlText);
         
         uploadStatus.textContent = `Her iki dosya yüklendi – ${hastalar.length} hasta bulundu.`;
@@ -460,7 +488,11 @@ loadBothFilesBtn.addEventListener('click', async () => {
         uploadArea.classList.add('uploaded');
         sorgulaKogusListesiDoldur();
     } catch (err) {
-        uploadStatus.textContent = 'Hata: ' + err.message;
+        let msg = 'Hata: ' + err.message;
+        if (window.location.protocol === 'file:') {
+            msg += ' – file:// protokolünde çalışıyorsunuz. Lütfen dosyaları yukarıdan manuel olarak seçin veya yerel sunucu kullanın.';
+        }
+        uploadStatus.textContent = msg;
         uploadStatus.className = 'upload-status error';
     }
 });

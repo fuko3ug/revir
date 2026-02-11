@@ -16,6 +16,9 @@
                 Muayene Listesi Programına Giriş
             </button>
             <div id="loadingStatus" class="loading-status"></div>
+            <button id="skipEnterBtn" class="btn btn-secondary" style="display:none; margin-top: 10px;">
+                Dosyasız Devam Et (Manuel Yükleme)
+            </button>
         </div>
     </div>
 
@@ -101,7 +104,20 @@
                 <details class="local-file-help">
                     <summary>Yerel dosya erişimi için yardım</summary>
                     <div class="help-content">
-                        <p><strong>⚠️ Güvenlik Notu:</strong> Chrome'u özel modda çalıştırmak güvenlik risklerine neden olabilir. İşiniz bittiğinde normal Chrome'u kullanmaya geri dönün.</p>
+                        <p><strong>⚠️ Güvenlik Notu:</strong> Tarayıcıyı özel modda çalıştırmak güvenlik risklerine neden olabilir. İşiniz bittiğinde normal tarayıcıyı kullanmaya geri dönün.</p>
+                        <p><strong>Önerilen Yöntem:</strong> Yukarıdaki dosya seçme alanını kullanarak XML veya JSON dosyalarını manuel olarak yükleyin.</p>
+                        <p><strong>Önerilen Alternatif:</strong> Python ile yerel sunucu başlatın (daha güvenli):</p>
+                        <code>python -m http.server 8000</code>
+                        <p>Sonra <code>http://localhost:8000</code> adresini açın</p>
+                        <p><strong>Edge'de yerel dosya erişimi:</strong></p>
+                        <ol>
+                            <li>Edge'i kapatın</li>
+                            <li>Kısayolu sağ tıklayıp "Özellikler" seçin</li>
+                            <li>Hedef alanına şunu ekleyin: <code>--allow-file-access-from-files</code></li>
+                            <li>Örnek: <code>"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --allow-file-access-from-files</code></li>
+                            <li>Edge'i bu kısayoldan başlatın</li>
+                            <li><strong>Önemli:</strong> İşiniz bittiğinde Edge'i kapatıp normal şekilde tekrar açın</li>
+                        </ol>
                         <p><strong>Chrome'da yerel dosya erişimi:</strong></p>
                         <ol>
                             <li>Chrome'u kapatın</li>
@@ -111,9 +127,6 @@
                             <li>Chrome'u bu kısayoldan başlatın</li>
                             <li><strong>Önemli:</strong> İşiniz bittiğinde Chrome'u kapatıp normal şekilde tekrar açın</li>
                         </ol>
-                        <p><strong>Önerilen Alternatif:</strong> Python ile yerel sunucu başlatın (daha güvenli):</p>
-                        <code>python -m http.server 8000</code>
-                        <p>Sonra <code>http://localhost:8000</code> adresini açın</p>
                     </div>
                 </details>
             </div>
