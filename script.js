@@ -1059,7 +1059,8 @@ function parseBulkImportText(text) {
     // Group 3: Date in DD/MM/YYYY format (e.g., 11/02/2026)
     // Example line: 10*******34	MBYS		DOĞUKAN KUŞ			11/02/2026 09:20:55	İşleme Alındı
     // The pattern captures: TC, skips MBYS and empty tabs, captures name, then captures date
-    const linePattern = /^(\d{2}\*+\d{2})\s+MBYS\s+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ\s]*?)\s+(\d{2}\/\d{2}\/\d{4})/i;
+    // Case-insensitive to handle both uppercase and mixed case names
+    const linePattern = /^(\d{2}\*+\d{2})\s+MBYS\s+([A-Za-zÇĞİÖŞÜçğıöşü][A-Za-zÇĞİÖŞÜçğıöşü\s]*?)\s+(\d{2}\/\d{2}\/\d{4})/i;
     
     lines.forEach(line => {
         const match = line.match(linePattern);

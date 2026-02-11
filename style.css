@@ -955,5 +955,6 @@ body.dark-theme .help-content code {
 }
 
 .gun-hasta-sil-btn:hover {
-    background-color: #c0392b;
+    background-color: var(--danger-color);
+    opacity: 0.85;
 }
