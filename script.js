@@ -46,8 +46,11 @@ async function loadBothFiles() {
 // Enter app button handler
 enterAppBtn.addEventListener('click', async () => {
     enterAppBtn.disabled = true;
-    await loadBothFiles();
-    enterAppBtn.disabled = false;
+    const success = await loadBothFiles();
+    // Only re-enable button if loading failed to allow retry
+    if (!success) {
+        enterAppBtn.disabled = false;
+    }
 });
 
 // Theme toggle
