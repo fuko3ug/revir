@@ -255,6 +255,7 @@ function modalGoster(hasta, mevcutKayit) {
     const kayitTarih = new Date(mevcutKayit.tarih).toLocaleDateString('tr-TR');
     uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 12 gün içinde muayene hakkı kullanılmış.`;
     uyariModal.classList.add('active');
+    yineDeEkleBtn.focus();
 }
 
 function modalKapat() {
@@ -278,6 +279,13 @@ eklemeBtn.addEventListener('click', () => {
 
 uyariModal.addEventListener('click', (e) => {
     if (e.target === uyariModal) {
+        modalKapat();
+        hastaAraInput.focus();
+    }
+});
+
+uyariModal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
         modalKapat();
         hastaAraInput.focus();
     }
@@ -632,6 +640,8 @@ function renderMuayeneListesi() {
 }
 
 listeTemizleBtn.addEventListener('click', () => {
+    if (muayeneListesi.length === 0) return;
+    if (!confirm('Listeyi temizlemek istediğinizden emin misiniz?')) return;
     muayeneListesi = [];
     renderMuayeneListesi();
     gruplanmisListe.innerHTML = '';
@@ -933,6 +943,7 @@ function gunDetayGoster() {
     // Add event listeners for individual delete buttons
     gunMuayeneListesi.querySelectorAll('.gun-hasta-sil-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (!confirm('Bu hastayı listeden silmek istediğinizden emin misiniz?')) return;
             const tc = btn.dataset.tc;
             gundenHastaSil(tc);
         });
