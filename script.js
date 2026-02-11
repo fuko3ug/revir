@@ -472,6 +472,32 @@ function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Cached examination frequency counts
+let _muayeneSayilariCache = null;
+let _muayeneSayilariCacheKey = null;
+
+function getMuayeneSayilari() {
+    const kayitlar = muayeneKayitlariGetir();
+    const cacheKey = JSON.stringify(kayitlar);
+    if (_muayeneSayilariCacheKey === cacheKey) return _muayeneSayilariCache;
+    const sayilar = {};
+    kayitlar.forEach(k => {
+        sayilar[k.tc] = (sayilar[k.tc] || 0) + 1;
+    });
+    _muayeneSayilariCache = sayilar;
+    _muayeneSayilariCacheKey = cacheKey;
+    return sayilar;
+}
+
+function siralaVeFiltrele(query, limit) {
+    const filtered = hastalar.filter(h =>
+        turkishLowerCase(h.adiSoyadi).includes(query)
+    );
+    const muayeneSayilari = getMuayeneSayilari();
+    filtered.sort((a, b) => (muayeneSayilari[b.tc] || 0) - (muayeneSayilari[a.tc] || 0));
+    return { results: filtered.slice(0, limit), muayeneSayilari };
+}
+
 hastaAraInput.addEventListener('input', () => {
     const query = turkishLowerCase(hastaAraInput.value.trim());
     selectedIndex = -1;
@@ -483,19 +509,7 @@ hastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    const filtered = hastalar.filter(h =>
-        turkishLowerCase(h.adiSoyadi).includes(query)
-    );
-
-    // Sort by examination frequency (most examined first)
-    const kayitlar = muayeneKayitlariGetir();
-    const muayeneSayilari = {};
-    kayitlar.forEach(k => {
-        muayeneSayilari[k.tc] = (muayeneSayilari[k.tc] || 0) + 1;
-    });
-    filtered.sort((a, b) => (muayeneSayilari[b.tc] || 0) - (muayeneSayilari[a.tc] || 0));
-
-    const results = filtered.slice(0, 20);
+    const { results, muayeneSayilari } = siralaVeFiltrele(query, 20);
 
     if (results.length === 0) {
         oneriListesi.classList.remove('active');
@@ -1009,19 +1023,7 @@ takvimHastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    const filtered = hastalar.filter(h =>
-        turkishLowerCase(h.adiSoyadi).includes(query)
-    );
-
-    // Sort by examination frequency (most examined first)
-    const kayitlar = muayeneKayitlariGetir();
-    const muayeneSayilari = {};
-    kayitlar.forEach(k => {
-        muayeneSayilari[k.tc] = (muayeneSayilari[k.tc] || 0) + 1;
-    });
-    filtered.sort((a, b) => (muayeneSayilari[b.tc] || 0) - (muayeneSayilari[a.tc] || 0));
-
-    const results = filtered.slice(0, 20);
+    const { results, muayeneSayilari } = siralaVeFiltrele(query, 20);
 
     if (results.length === 0) {
         takvimOneriListesi.classList.remove('active');
