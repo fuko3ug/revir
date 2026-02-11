@@ -44,6 +44,21 @@
                 <div id="gunMuayeneListesi" class="muayene-listesi">
                     <p class="empty-message">Bu gün için kayıt yok.</p>
                 </div>
+                <div class="gun-detay-ekle">
+                    <h4>Kişi Ekle</h4>
+                    <div class="search-wrapper">
+                        <input type="text" id="takvimHastaAraInput" class="input-field" placeholder="Hasta adı yazın veya tam isim giriniz..." autocomplete="off">
+                        <div id="takvimOneriListesi" class="oneri-listesi"></div>
+                    </div>
+                    <button id="takvimManuelEkleBtn" class="btn btn-primary" style="margin-top: 10px;">Manuel Ekle</button>
+                </div>
+            </section>
+            <section class="card bulk-import-section">
+                <h3>Toplu Liste İçe Aktar</h3>
+                <p class="help-text">MBYS hasta listesini buraya yapıştırın (TC, Ad Soyad ve Tarih bilgileri otomatik çıkarılır)</p>
+                <textarea id="bulkImportText" class="bulk-import-textarea" placeholder="Hasta listesini buraya yapıştırın..."></textarea>
+                <button id="bulkImportBtn" class="btn btn-success">Listeyi İçe Aktar</button>
+                <div id="bulkImportStatus" class="import-status"></div>
             </section>
         </div>
 

@@ -507,8 +507,17 @@ listeYazBtn.addEventListener('click', () => {
     // Muayene listesini kaydet
     muayeneListesiKaydet();
 
-    const grouped = {};
+    // Make list unique by TC number
+    const uniqueByTC = {};
     muayeneListesi.forEach(h => {
+        if (!uniqueByTC[h.tc]) {
+            uniqueByTC[h.tc] = h;
+        }
+    });
+    const uniqueList = Object.values(uniqueByTC);
+
+    const grouped = {};
+    uniqueList.forEach(h => {
         if (!grouped[h.kogus]) grouped[h.kogus] = [];
         grouped[h.kogus].push(h);
     });
@@ -554,8 +563,17 @@ listeKaydetBtn.addEventListener('click', () => {
     let csvContent = '\uFEFF'; // UTF-8 BOM for Excel
     csvContent += `Revir Muayene Listesi - ${tarih} ${saat}\n\n`;
     
-    const grouped = {};
+    // Make list unique by TC number
+    const uniqueByTC = {};
     muayeneListesi.forEach(h => {
+        if (!uniqueByTC[h.tc]) {
+            uniqueByTC[h.tc] = h;
+        }
+    });
+    const uniqueList = Object.values(uniqueByTC);
+    
+    const grouped = {};
+    uniqueList.forEach(h => {
         if (!grouped[h.kogus]) grouped[h.kogus] = [];
         grouped[h.kogus].push(h);
     });
@@ -751,6 +769,145 @@ function gunDetayGoster() {
     gunMuayeneListesi.innerHTML = html;
 }
 
+// Calendar patient search and add
+const takvimHastaAraInput = document.getElementById('takvimHastaAraInput');
+const takvimOneriListesi = document.getElementById('takvimOneriListesi');
+const takvimManuelEkleBtn = document.getElementById('takvimManuelEkleBtn');
+let takvimSelectedIndex = -1;
+
+takvimHastaAraInput.addEventListener('input', () => {
+    const query = turkishLowerCase(takvimHastaAraInput.value.trim());
+    takvimSelectedIndex = -1;
+
+    if (query.length < 2) {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        return;
+    }
+
+    const results = hastalar.filter(h =>
+        turkishLowerCase(h.adiSoyadi).includes(query)
+    ).slice(0, 20);
+
+    if (results.length === 0) {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        return;
+    }
+
+    takvimOneriListesi.innerHTML = results.map((h, i) =>
+        `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+            <div class="oneri-detay">${escapeHtml(h.kogus || 'Koğuş bilgisi yok')} | TC: ${escapeHtml(h.tc)}</div>
+        </div>`
+    ).join('');
+    takvimOneriListesi.classList.add('active');
+
+    takvimOneriListesi.querySelectorAll('.oneri-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const idx = parseInt(item.dataset.index);
+            takvimHastaEkle(results[idx]);
+        });
+    });
+});
+
+takvimHastaAraInput.addEventListener('keydown', (e) => {
+    const items = takvimOneriListesi.querySelectorAll('.oneri-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        takvimSelectedIndex = Math.min(takvimSelectedIndex + 1, items.length - 1);
+        updateTakvimSelection(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        takvimSelectedIndex = Math.max(takvimSelectedIndex - 1, 0);
+        updateTakvimSelection(items);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (takvimSelectedIndex >= 0 && takvimSelectedIndex < items.length) {
+            items[takvimSelectedIndex].click();
+        }
+    } else if (e.key === 'Escape') {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        takvimSelectedIndex = -1;
+    }
+});
+
+function updateTakvimSelection(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle('selected', i === takvimSelectedIndex);
+    });
+    if (takvimSelectedIndex >= 0) {
+        items[takvimSelectedIndex].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+// Manual add button - add by name only
+takvimManuelEkleBtn.addEventListener('click', () => {
+    const isim = takvimHastaAraInput.value.trim();
+    if (!isim || seciliGun === null) return;
+    
+    // Check if patient exists in database
+    const existingPatient = hastalar.find(h => 
+        turkishLowerCase(h.adiSoyadi) === turkishLowerCase(isim)
+    );
+    
+    if (existingPatient) {
+        takvimHastaEkle(existingPatient);
+    } else {
+        // Add as manual entry without full patient data
+        const manuelHasta = {
+            tc: 'MANUEL-' + Date.now(), // Generate unique ID for manual entries
+            adiSoyadi: isim,
+            kogus: 'Manuel Giriş',
+            babaAdi: '',
+            dogumYeriTarihi: ''
+        };
+        takvimHastaEkle(manuelHasta);
+    }
+});
+
+function takvimHastaEkle(hasta) {
+    if (seciliGun === null) return;
+    
+    const kayitTarihi = new Date(takvimYil, takvimAy, seciliGun);
+    const kayitlar = muayeneKayitlariGetir();
+    
+    // Check if patient already added to this day
+    const mevcutKayit = kayitlar.find(k => {
+        const kTarih = new Date(k.tarih);
+        return k.tc === hasta.tc && 
+               kTarih.getFullYear() === takvimYil &&
+               kTarih.getMonth() === takvimAy &&
+               kTarih.getDate() === seciliGun;
+    });
+    
+    if (mevcutKayit) {
+        alert('Bu hasta zaten bu güne eklenmiş!');
+        return;
+    }
+    
+    // Add to calendar
+    kayitlar.push({
+        tc: hasta.tc,
+        adiSoyadi: hasta.adiSoyadi,
+        kogus: hasta.kogus || 'Manuel Giriş',
+        tarih: kayitTarihi.toISOString()
+    });
+    
+    muayeneKayitlariKaydet(kayitlar);
+    
+    takvimHastaAraInput.value = '';
+    takvimOneriListesi.classList.remove('active');
+    takvimOneriListesi.innerHTML = '';
+    takvimSelectedIndex = -1;
+    
+    takvimCiz();
+    gunDetayGoster();
+}
+
 oncekiAyBtn.addEventListener('click', () => {
     takvimAy--;
     if (takvimAy < 0) { takvimAy = 11; takvimYil--; }
@@ -769,3 +926,116 @@ sonrakiAyBtn.addEventListener('click', () => {
 
 // Initial calendar render
 takvimCiz();
+
+// Bulk import functionality
+const bulkImportText = document.getElementById('bulkImportText');
+const bulkImportBtn = document.getElementById('bulkImportBtn');
+const bulkImportStatus = document.getElementById('bulkImportStatus');
+
+bulkImportBtn.addEventListener('click', () => {
+    const text = bulkImportText.value.trim();
+    if (!text) {
+        bulkImportStatus.textContent = 'Lütfen liste metnini yapıştırın!';
+        bulkImportStatus.className = 'import-status error';
+        return;
+    }
+    
+    try {
+        const results = parseBulkImportText(text);
+        
+        if (results.length === 0) {
+            bulkImportStatus.textContent = 'Hiç hasta kaydı bulunamadı!';
+            bulkImportStatus.className = 'import-status error';
+            return;
+        }
+        
+        const kayitlar = muayeneKayitlariGetir();
+        let eklenenSayisi = 0;
+        let atlanmaSayisi = 0;
+        
+        results.forEach(result => {
+            // Check for duplicates based on TC and date
+            const mevcutKayit = kayitlar.find(k => {
+                const kTarih = new Date(k.tarih);
+                const rTarih = new Date(result.tarih);
+                return k.tc === result.tc && 
+                       kTarih.getFullYear() === rTarih.getFullYear() &&
+                       kTarih.getMonth() === rTarih.getMonth() &&
+                       kTarih.getDate() === rTarih.getDate();
+            });
+            
+            if (!mevcutKayit) {
+                // Try to find patient in database
+                const dbPatient = hastalar.find(h => h.tc === result.tc);
+                
+                kayitlar.push({
+                    tc: result.tc,
+                    adiSoyadi: result.adiSoyadi,
+                    kogus: dbPatient ? dbPatient.kogus : 'İçe Aktarılan',
+                    tarih: result.tarih
+                });
+                eklenenSayisi++;
+            } else {
+                atlanmaSayisi++;
+            }
+        });
+        
+        muayeneKayitlariKaydet(kayitlar);
+        takvimCiz();
+        
+        bulkImportStatus.textContent = `✓ ${eklenenSayisi} hasta eklendi${atlanmaSayisi > 0 ? `, ${atlanmaSayisi} kayıt zaten mevcut (atlandı)` : ''}`;
+        bulkImportStatus.className = 'import-status success';
+        
+        // Clear textarea after successful import
+        bulkImportText.value = '';
+        
+    } catch (err) {
+        bulkImportStatus.textContent = '✗ Hata: ' + err.message;
+        bulkImportStatus.className = 'import-status error';
+    }
+});
+
+function parseBulkImportText(text) {
+    const results = [];
+    const lines = text.split('\n');
+    
+    // Pattern: TC number (with asterisks), name, and date
+    // Example: 10*******34	MBYS		DOĞUKAN KUŞ			11/02/2026 09:20:55
+    const linePattern = /^(\d{2}\*+\d{2})\s+\w+\s+.*?\s+([A-ZÇĞİÖŞÜ\s]+?)\s+.*?(\d{2}\/\d{2}\/\d{4})/i;
+    
+    lines.forEach(line => {
+        const match = line.match(linePattern);
+        if (match) {
+            const tcPartial = match[1];
+            const adiSoyadi = match[2].trim();
+            const tarihStr = match[3];
+            
+            // Parse date (DD/MM/YYYY format)
+            const dateParts = tarihStr.split('/');
+            if (dateParts.length === 3) {
+                const day = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]) - 1; // JS months are 0-indexed
+                const year = parseInt(dateParts[2]);
+                const tarih = new Date(year, month, day);
+                
+                // Try to find patient by name to get full TC
+                let tc = tcPartial;
+                const dbPatient = hastalar.find(h => 
+                    turkishLowerCase(h.adiSoyadi) === turkishLowerCase(adiSoyadi)
+                );
+                
+                if (dbPatient) {
+                    tc = dbPatient.tc;
+                }
+                
+                results.push({
+                    tc: tc,
+                    adiSoyadi: adiSoyadi,
+                    tarih: tarih.toISOString()
+                });
+            }
+        }
+    });
+    
+    return results;
+}

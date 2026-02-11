@@ -868,3 +868,71 @@ body.dark-theme .help-content code {
         flex-direction: column;
     }
 }
+
+/* Calendar day detail additions */
+.gun-detay-ekle {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.gun-detay-ekle h4 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+/* Bulk import section */
+.bulk-import-section {
+    margin-top: 20px;
+}
+
+.help-text {
+    color: var(--text-color);
+    opacity: 0.8;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.bulk-import-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    transition: border-color 0.3s ease;
+}
+
+.bulk-import-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.import-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.import-status.success {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+.import-status.error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+}
+
+.import-status.info {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
