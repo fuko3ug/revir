@@ -177,7 +177,6 @@ header h1 {
 }
 
 .card:hover {
-    transform: translateY(-5px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
@@ -477,6 +476,35 @@ footer {
 
 .muayene-listesi .sil-btn:hover {
     background: #c0392b;
+}
+
+/* 2-column layout for examination list */
+.muayene-listesi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.muayene-listesi-col table {
+    font-size: 0.8rem;
+}
+
+.muayene-listesi-col th,
+.muayene-listesi-col td {
+    padding: 4px 6px;
+}
+
+/* Examination count badge in search suggestions */
+.oneri-badge {
+    display: inline-block;
+    background: var(--success-color);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 .muayene-actions {
@@ -913,6 +941,10 @@ body.dark-theme .help-content code {
         height: 32px;
         font-size: 1rem;
         right: 10px;
+    }
+
+    .muayene-listesi-grid {
+        grid-template-columns: 1fr;
     }
 
     .takvim-gun {

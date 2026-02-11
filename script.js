@@ -483,9 +483,19 @@ hastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    const results = hastalar.filter(h =>
+    const filtered = hastalar.filter(h =>
         turkishLowerCase(h.adiSoyadi).includes(query)
-    ).slice(0, 20);
+    );
+
+    // Sort by examination frequency (most examined first)
+    const kayitlar = muayeneKayitlariGetir();
+    const muayeneSayilari = {};
+    kayitlar.forEach(k => {
+        muayeneSayilari[k.tc] = (muayeneSayilari[k.tc] || 0) + 1;
+    });
+    filtered.sort((a, b) => (muayeneSayilari[b.tc] || 0) - (muayeneSayilari[a.tc] || 0));
+
+    const results = filtered.slice(0, 20);
 
     if (results.length === 0) {
         oneriListesi.classList.remove('active');
@@ -493,12 +503,14 @@ hastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    oneriListesi.innerHTML = results.map((h, i) =>
-        `<div class="oneri-item" data-index="${i}">
-            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+    oneriListesi.innerHTML = results.map((h, i) => {
+        const sayi = muayeneSayilari[h.tc] || 0;
+        const badge = sayi > 0 ? ` <span class="oneri-badge">${sayi}</span>` : '';
+        return `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>${badge}
             <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)} | Baba: ${escapeHtml(h.babaAdi)}</div>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
     oneriListesi.classList.add('active');
 
     oneriListesi.querySelectorAll('.oneri-item').forEach(item => {
@@ -573,22 +585,34 @@ function renderMuayeneListesi() {
         muayeneListesiDiv.innerHTML = '<p class="empty-message">Henüz listeye hasta eklenmedi.</p>';
         return;
     }
-    let html = `<table>
-        <thead><tr>
-            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Baba Adı</th><th>Doğum Yeri</th><th>Koğuş</th><th></th>
-        </tr></thead><tbody>`;
-    muayeneListesi.forEach((h, i) => {
-        html += `<tr>
-            <td>${i + 1}</td>
-            <td>${escapeHtml(h.adiSoyadi)}</td>
-            <td>${escapeHtml(h.tc)}</td>
-            <td>${escapeHtml(h.babaAdi)}</td>
-            <td>${escapeHtml(h.dogumYeriTarihi)}</td>
-            <td>${escapeHtml(h.kogus)}</td>
-            <td><button class="sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
-        </tr>`;
-    });
-    html += '</tbody></table>';
+    // Split into two columns
+    const mid = Math.ceil(muayeneListesi.length / 2);
+    const col1 = muayeneListesi.slice(0, mid);
+    const col2 = muayeneListesi.slice(mid);
+
+    function buildColumn(list, startIndex) {
+        let h = `<table>
+            <thead><tr>
+                <th>#</th><th>Adı Soyadı</th><th>Koğuş</th><th></th>
+            </tr></thead><tbody>`;
+        list.forEach((p, i) => {
+            h += `<tr>
+                <td>${startIndex + i + 1}</td>
+                <td>${escapeHtml(p.adiSoyadi)}</td>
+                <td>${escapeHtml(p.kogus)}</td>
+                <td><button class="sil-btn" data-tc="${escapeHtml(p.tc)}">Sil</button></td>
+            </tr>`;
+        });
+        h += '</tbody></table>';
+        return h;
+    }
+
+    let html = '<div class="muayene-listesi-grid">';
+    html += '<div class="muayene-listesi-col">' + buildColumn(col1, 0) + '</div>';
+    if (col2.length > 0) {
+        html += '<div class="muayene-listesi-col">' + buildColumn(col2, mid) + '</div>';
+    }
+    html += '</div>';
     muayeneListesiDiv.innerHTML = html;
 
     muayeneListesiDiv.querySelectorAll('.sil-btn').forEach(btn => {
@@ -985,9 +1009,19 @@ takvimHastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    const results = hastalar.filter(h =>
+    const filtered = hastalar.filter(h =>
         turkishLowerCase(h.adiSoyadi).includes(query)
-    ).slice(0, 20);
+    );
+
+    // Sort by examination frequency (most examined first)
+    const kayitlar = muayeneKayitlariGetir();
+    const muayeneSayilari = {};
+    kayitlar.forEach(k => {
+        muayeneSayilari[k.tc] = (muayeneSayilari[k.tc] || 0) + 1;
+    });
+    filtered.sort((a, b) => (muayeneSayilari[b.tc] || 0) - (muayeneSayilari[a.tc] || 0));
+
+    const results = filtered.slice(0, 20);
 
     if (results.length === 0) {
         takvimOneriListesi.classList.remove('active');
@@ -995,12 +1029,14 @@ takvimHastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    takvimOneriListesi.innerHTML = results.map((h, i) =>
-        `<div class="oneri-item" data-index="${i}">
-            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+    takvimOneriListesi.innerHTML = results.map((h, i) => {
+        const sayi = muayeneSayilari[h.tc] || 0;
+        const badge = sayi > 0 ? ` <span class="oneri-badge">${sayi}</span>` : '';
+        return `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>${badge}
             <div class="oneri-detay">${escapeHtml(h.kogus || 'Koğuş bilgisi yok')} | TC: ${escapeHtml(h.tc)}</div>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
     takvimOneriListesi.classList.add('active');
 
     takvimOneriListesi.querySelectorAll('.oneri-item').forEach(item => {
