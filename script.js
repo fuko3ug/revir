@@ -858,8 +858,10 @@ takvimManuelEkleBtn.addEventListener('click', () => {
         takvimHastaEkle(existingPatient);
     } else {
         // Add as manual entry without full patient data
+        // Use timestamp + random component for unique ID
+        const randomSuffix = Math.floor(Math.random() * 1000);
         const manuelHasta = {
-            tc: 'MANUEL-' + Date.now(), // Generate unique ID for manual entries
+            tc: 'MANUEL-' + Date.now() + '-' + randomSuffix,
             adiSoyadi: isim,
             kogus: 'Manuel Giriş',
             babaAdi: '',
@@ -999,16 +1001,19 @@ function parseBulkImportText(text) {
     const results = [];
     const lines = text.split('\n');
     
-    // Pattern: TC number (with asterisks), name, and date
-    // Example: 10*******34	MBYS		DOĞUKAN KUŞ			11/02/2026 09:20:55
+    // MBYS format pattern explanation:
+    // Group 1: TC number with asterisks (e.g., 10*******34)
+    // Group 2: Full name (e.g., DOĞUKAN KUŞ)
+    // Group 3: Date in DD/MM/YYYY format (e.g., 11/02/2026)
+    // Example line: 10*******34	MBYS		DOĞUKAN KUŞ			11/02/2026 09:20:55	İşleme Alındı
     const linePattern = /^(\d{2}\*+\d{2})\s+\w+\s+.*?\s+([A-ZÇĞİÖŞÜ\s]+?)\s+.*?(\d{2}\/\d{2}\/\d{4})/i;
     
     lines.forEach(line => {
         const match = line.match(linePattern);
         if (match) {
-            const tcPartial = match[1];
-            const adiSoyadi = match[2].trim();
-            const tarihStr = match[3];
+            const tcPartial = match[1];  // TC with asterisks
+            const adiSoyadi = match[2].trim();  // Full name
+            const tarihStr = match[3];  // Date string
             
             // Parse date (DD/MM/YYYY format)
             const dateParts = tarihStr.split('/');
