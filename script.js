@@ -592,10 +592,31 @@ function gunAnahtari(yil, ay, gun) {
     return `${yil}-${String(ay + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
 }
 
+function getMuayeneKayitlariByDate(yil, ay, gun) {
+    const muayeneKayitlari = muayeneKayitlariGetir();
+    return muayeneKayitlari.filter(k => {
+        const kayitTarih = new Date(k.tarih);
+        return kayitTarih.getFullYear() === yil &&
+               kayitTarih.getMonth() === ay &&
+               kayitTarih.getDate() === gun;
+    });
+}
+
 function takvimCiz() {
     takvimBaslik.textContent = `${ayIsimleri[takvimAy]} ${takvimYil}`;
     const muayeneKayitlari = muayeneKayitlariGetir();
     const bugun = new Date();
+
+    // Pre-group records by date for O(1) lookup
+    const kayitlarByDate = {};
+    muayeneKayitlari.forEach(k => {
+        const kayitTarih = new Date(k.tarih);
+        if (kayitTarih.getFullYear() === takvimYil && kayitTarih.getMonth() === takvimAy) {
+            const gun = kayitTarih.getDate();
+            if (!kayitlarByDate[gun]) kayitlarByDate[gun] = [];
+            kayitlarByDate[gun].push(k);
+        }
+    });
 
     let html = '';
     gunIsimleri.forEach(g => {
@@ -614,14 +635,7 @@ function takvimCiz() {
     }
 
     for (let gun = 1; gun <= aydakiGunSayisi; gun++) {
-        const anahtar = gunAnahtari(takvimYil, takvimAy, gun);
-        // Count records for this day from muayeneKayitlari
-        const gunKayitlari = muayeneKayitlari.filter(k => {
-            const kayitTarih = new Date(k.tarih);
-            return kayitTarih.getFullYear() === takvimYil &&
-                   kayitTarih.getMonth() === takvimAy &&
-                   kayitTarih.getDate() === gun;
-        });
+        const gunKayitlari = kayitlarByDate[gun] || [];
         const bugunMu = bugun.getFullYear() === takvimYil && bugun.getMonth() === takvimAy && bugun.getDate() === gun;
         const seciliMi = seciliGun === gun;
 
@@ -656,14 +670,7 @@ function gunDetayGoster() {
     gunDetaySection.style.display = 'block';
     gunDetayBaslik.textContent = `${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil} - Muayene Listesi`;
 
-    const muayeneKayitlari = muayeneKayitlariGetir();
-    // Get records for this specific day
-    const gunKayitlari = muayeneKayitlari.filter(k => {
-        const kayitTarih = new Date(k.tarih);
-        return kayitTarih.getFullYear() === takvimYil &&
-               kayitTarih.getMonth() === takvimAy &&
-               kayitTarih.getDate() === seciliGun;
-    });
+    const gunKayitlari = getMuayeneKayitlariByDate(takvimYil, takvimAy, seciliGun);
 
     if (gunKayitlari.length === 0) {
         gunMuayeneListesi.innerHTML = '<p class="empty-message">Bu gün için kayıt yok.</p>';
