@@ -99,6 +99,17 @@ let muayeneListesi = [];
 let selectedIndex = -1;
 let bekleyenHasta = null; // Hasta waiting for modal confirmation
 
+// Collapsible section for Muayene Listesi Oluştur
+const muayeneOlusturHeader = document.getElementById('muayeneOlusturHeader');
+const muayeneOlusturContainer = document.getElementById('muayeneOlusturContainer');
+
+if (muayeneOlusturHeader && muayeneOlusturContainer) {
+    muayeneOlusturHeader.addEventListener('click', () => {
+        muayeneOlusturHeader.classList.toggle('collapsed');
+        muayeneOlusturContainer.classList.toggle('collapsed');
+    });
+}
+
 const hastaAraInput = document.getElementById('hastaAraInput');
 const oneriListesi = document.getElementById('oneriListesi');
 const muayeneListesiDiv = document.getElementById('muayeneListesi');
@@ -130,7 +141,7 @@ function muayeneKayitlariKaydet(kayitlar) {
 function sonIkiHaftaKontrol(tc) {
     const kayitlar = muayeneKayitlariGetir();
     const ikiHaftaOnce = new Date();
-    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 14);
+    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 12);
 
     return kayitlar.find(k =>
         k.tc === tc && new Date(k.tarih) >= ikiHaftaOnce
@@ -141,9 +152,9 @@ function muayeneListesiKaydet() {
     const kayitlar = muayeneKayitlariGetir();
     const bugun = new Date();
     const ikiHaftaOnce = new Date();
-    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 14);
+    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 12);
 
-    // Eski kayıtları temizle (14 günden eski)
+    // Eski kayıtları temizle (12 günden eski)
     const guncelKayitlar = kayitlar.filter(k => new Date(k.tarih) >= ikiHaftaOnce);
 
     const bugunISO = bugun.toISOString();
@@ -251,7 +262,7 @@ function loadTodaysExaminationList() {
 function modalGoster(hasta, mevcutKayit) {
     bekleyenHasta = hasta;
     const kayitTarih = new Date(mevcutKayit.tarih).toLocaleDateString('tr-TR');
-    uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 2 hafta içinde muayene hakkı kullanılmış.`;
+    uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 12 gün içinde muayene hakkı kullanılmış.`;
     uyariModal.classList.add('active');
 }
 
@@ -546,7 +557,7 @@ function hastaEkle(hasta) {
     oneriListesi.innerHTML = '';
     selectedIndex = -1;
 
-    // 2 haftalık muayene kontrolü
+    // 12 günlük muayene kontrolü
     const mevcutKayit = sonIkiHaftaKontrol(hasta.tc);
     if (mevcutKayit) {
         modalGoster(hasta, mevcutKayit);

@@ -891,8 +891,8 @@ body.dark-theme .help-content code {
         display: none !important;
     }
 
-    /* Hide main app when printing calendar day */
-    .container {
+    /* Hide main app when printing calendar day (but not when printing examination list) */
+    body:has(#calendarPrintContainer) .container {
         display: none !important;
     }
 }
@@ -1017,4 +1017,42 @@ body.dark-theme .help-content code {
 .gun-hasta-sil-btn:hover {
     background-color: var(--danger-color);
     opacity: 0.85;
+}
+
+/* Collapsible section styles */
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 0 -15px 15px -15px;
+    background-color: var(--card-bg);
+    border-bottom: 2px solid var(--border-color);
+    transition: background-color 0.3s ease;
+}
+
+.collapsible-header:hover {
+    background-color: var(--border-color);
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+    font-size: 0.8em;
+    color: var(--text-color);
+}
+
+.collapsible-header.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.muayene-container {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.muayene-container.collapsed {
+    max-height: 0;
 }
