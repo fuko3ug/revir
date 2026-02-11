@@ -31,6 +31,63 @@ body.dark-theme {
     --border-color: #444;
 }
 
+/* Entry Screen */
+.entry-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    padding: 20px;
+}
+
+.entry-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.entry-content h1 {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.entry-description {
+    color: var(--text-color);
+    opacity: 0.8;
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+}
+
+.btn-large {
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.loading-status {
+    margin-top: 20px;
+    min-height: 30px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.loading-status.loading {
+    color: var(--primary-color);
+}
+
+.loading-status.success {
+    color: var(--success-color);
+}
+
+.loading-status.error {
+    color: var(--danger-color);
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -626,6 +683,225 @@ body.dark-theme .gruplanmis-liste th {
     background: #c0392b;
 }
 
+/* Local file access buttons and help */
+.local-file-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.local-file-help {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: rgba(52, 152, 219, 0.05);
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+}
+
+.local-file-help summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-color);
+    padding: 5px;
+    user-select: none;
+}
+
+.local-file-help summary:hover {
+    opacity: 0.8;
+}
+
+.help-content {
+    padding: 10px 5px 5px 5px;
+    line-height: 1.6;
+}
+
+.help-content ol {
+    margin-left: 20px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.help-content li {
+    margin: 5px 0;
+}
+
+.help-content code {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+body.dark-theme .help-content code {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Print styles */
+@media print {
+    body {
+        background-color: white;
+        color: black;
+        font-size: 9pt;
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    header,
+    .tab-nav,
+    .xml-upload-section,
+    .search-wrapper,
+    .muayene-actions,
+    .muayene-listesi,
+    .sil-btn,
+    footer,
+    .theme-toggle-btn,
+    .modal-overlay,
+    .takvim-header,
+    .gun-detay-ekle {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none;
+        page-break-inside: avoid;
+        border: none;
+        margin: 0;
+        padding: 5px;
+    }
+
+    .muayene-section h2 {
+        display: none !important;
+    }
+
+    .gruplanmis-liste {
+        margin-top: 5px;
+    }
+
+    .gruplanmis-liste .kogus-group {
+        page-break-inside: avoid;
+        margin-bottom: 8px;
+    }
+
+    .gruplanmis-liste .kogus-baslik {
+        background-color: #2c3e50 !important;
+        color: white !important;
+        padding: 4px 8px;
+        font-size: 10pt;
+        font-weight: bold;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .gruplanmis-liste table {
+        border: 1px solid #333;
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 8pt;
+    }
+
+    .gruplanmis-liste th {
+        background-color: #ecf0f1 !important;
+        color: #2c3e50 !important;
+        border: 1px solid #333;
+        padding: 3px 4px;
+        font-size: 8pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .gruplanmis-liste td {
+        border: 1px solid #333;
+        padding: 2px 4px;
+        font-size: 8pt;
+    }
+
+    .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid #2c3e50;
+    }
+
+    .print-header h1 {
+        font-size: 14pt;
+        color: #2c3e50;
+        margin-bottom: 3px;
+    }
+
+    .print-date {
+        font-size: 9pt;
+        color: #555;
+    }
+
+    /* Calendar day print styles */
+    .calendar-print-header {
+        text-align: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #2c3e50;
+    }
+
+    .calendar-print-header h1 {
+        font-size: 16pt;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+
+    .calendar-print-date {
+        font-size: 10pt;
+        color: #555;
+    }
+
+    #calendarPrintContainer {
+        display: block !important;
+    }
+
+    #calendarPrintContainer table {
+        border: 1px solid #333;
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 10pt;
+    }
+
+    #calendarPrintContainer th {
+        background-color: #ecf0f1 !important;
+        color: #2c3e50 !important;
+        border: 1px solid #333;
+        padding: 6px 8px;
+        font-size: 10pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    #calendarPrintContainer td {
+        border: 1px solid #333;
+        padding: 4px 8px;
+        font-size: 10pt;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    /* Hide main app when printing calendar day (but not when printing examination list) */
+    body:has(#calendarPrintContainer) .container {
+        display: none !important;
+    }
+}
+
+/* Calendar print container - hidden by default */
+#calendarPrintContainer {
+    display: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     header h1 {
@@ -647,4 +923,136 @@ body.dark-theme .gruplanmis-liste th {
     .takvim-gun-baslik {
         font-size: 0.75rem;
     }
+
+    .local-file-buttons {
+        flex-direction: column;
+    }
+}
+
+/* Calendar day detail additions */
+.gun-detay-ekle {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.gun-detay-ekle h4 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+/* Bulk import section */
+.bulk-import-section {
+    margin-top: 20px;
+}
+
+.help-text {
+    color: var(--text-color);
+    opacity: 0.8;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.bulk-import-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    transition: border-color 0.3s ease;
+}
+
+.bulk-import-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.import-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.import-status.success {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+.import-status.error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+}
+
+.import-status.info {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+/* Calendar day actions */
+.gun-liste-actions {
+    margin-bottom: 15px;
+    text-align: right;
+}
+
+.gun-hasta-sil-btn {
+    padding: 4px 12px;
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.3s ease;
+}
+
+.gun-hasta-sil-btn:hover {
+    background-color: var(--danger-color);
+    opacity: 0.85;
+}
+
+/* Collapsible section styles */
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 0 -15px 15px -15px;
+    background-color: var(--card-bg);
+    border-bottom: 2px solid var(--border-color);
+    transition: background-color 0.3s ease;
+}
+
+.collapsible-header:hover {
+    background-color: var(--border-color);
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+    font-size: 0.8em;
+    color: var(--text-color);
+}
+
+.collapsible-header.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.muayene-container {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.muayene-container.collapsed {
+    max-height: 0;
 }

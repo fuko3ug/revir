@@ -1,3 +1,60 @@
+// Entry Screen
+const entryScreen = document.getElementById('entryScreen');
+const mainApp = document.getElementById('mainApp');
+const enterAppBtn = document.getElementById('enterAppBtn');
+const loadingStatus = document.getElementById('loadingStatus');
+
+// Load both files function
+async function loadBothFiles() {
+    loadingStatus.textContent = 'Dosyalar yükleniyor...';
+    loadingStatus.className = 'loading-status loading';
+    
+    try {
+        // Load hastalar.json first
+        const jsonResponse = await fetch('hastalar.json');
+        if (!jsonResponse.ok) {
+            throw new Error('hastalar.json bulunamadı');
+        }
+        const jsonText = await jsonResponse.text();
+        parseJsonText(jsonText);
+        
+        // Load tasnif.xml
+        const xmlResponse = await fetch('tasnif.xml');
+        if (!xmlResponse.ok) {
+            throw new Error('tasnif.xml bulunamadı');
+        }
+        const xmlText = await xmlResponse.text();
+        parseXmlText(xmlText);
+        
+        loadingStatus.textContent = `✓ Dosyalar başarıyla yüklendi (${hastalar.length} hasta)`;
+        loadingStatus.className = 'loading-status success';
+        
+        // Show main app after a brief delay
+        setTimeout(() => {
+            entryScreen.style.display = 'none';
+            mainApp.style.display = 'block';
+            // Load today's examination list after app is displayed
+            loadTodaysExaminationList();
+        }, 800);
+        
+        return true;
+    } catch (err) {
+        loadingStatus.textContent = '✗ Hata: ' + err.message;
+        loadingStatus.className = 'loading-status error';
+        return false;
+    }
+}
+
+// Enter app button handler
+enterAppBtn.addEventListener('click', async () => {
+    enterAppBtn.disabled = true;
+    const success = await loadBothFiles();
+    // Only re-enable button if loading failed to allow retry
+    if (!success) {
+        enterAppBtn.disabled = false;
+    }
+});
+
 // Theme toggle
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 
@@ -28,6 +85,11 @@ tabButtons.forEach(btn => {
         btn.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
         document.getElementById(btn.dataset.tab + 'Tab').style.display = 'block';
+        
+        // Load today's examination list when switching to Muayene tab
+        if (btn.dataset.tab === 'muayene') {
+            loadTodaysExaminationList();
+        }
     });
 });
 
@@ -37,11 +99,24 @@ let muayeneListesi = [];
 let selectedIndex = -1;
 let bekleyenHasta = null; // Hasta waiting for modal confirmation
 
+// Collapsible section for Muayene Listesi Oluştur
+const muayeneOlusturHeader = document.getElementById('muayeneOlusturHeader');
+const muayeneOlusturContainer = document.getElementById('muayeneOlusturContainer');
+
+if (muayeneOlusturHeader && muayeneOlusturContainer) {
+    muayeneOlusturHeader.addEventListener('click', () => {
+        muayeneOlusturHeader.classList.toggle('collapsed');
+        muayeneOlusturContainer.classList.toggle('collapsed');
+    });
+}
+
 const hastaAraInput = document.getElementById('hastaAraInput');
 const oneriListesi = document.getElementById('oneriListesi');
 const muayeneListesiDiv = document.getElementById('muayeneListesi');
 const listeTemizleBtn = document.getElementById('listeTemizleBtn');
 const listeYazBtn = document.getElementById('listeYazBtn');
+const listeKaydetBtn = document.getElementById('listeKaydetBtn');
+const listeYazdirBtn = document.getElementById('listeYazdirBtn');
 const gruplanmisListe = document.getElementById('gruplanmisListe');
 
 // Modal elements
@@ -66,7 +141,7 @@ function muayeneKayitlariKaydet(kayitlar) {
 function sonIkiHaftaKontrol(tc) {
     const kayitlar = muayeneKayitlariGetir();
     const ikiHaftaOnce = new Date();
-    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 14);
+    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 12);
 
     return kayitlar.find(k =>
         k.tc === tc && new Date(k.tarih) >= ikiHaftaOnce
@@ -77,9 +152,9 @@ function muayeneListesiKaydet() {
     const kayitlar = muayeneKayitlariGetir();
     const bugun = new Date();
     const ikiHaftaOnce = new Date();
-    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 14);
+    ikiHaftaOnce.setDate(ikiHaftaOnce.getDate() - 12);
 
-    // Eski kayıtları temizle (14 günden eski)
+    // Eski kayıtları temizle (12 günden eski)
     const guncelKayitlar = kayitlar.filter(k => new Date(k.tarih) >= ikiHaftaOnce);
 
     const bugunISO = bugun.toISOString();
@@ -94,11 +169,100 @@ function muayeneListesiKaydet() {
     muayeneKayitlariKaydet(guncelKayitlar);
 }
 
+function loadTodaysExaminationList() {
+    // Get today's date
+    const bugun = new Date();
+    const yil = bugun.getFullYear();
+    const ay = bugun.getMonth();
+    const gun = bugun.getDate();
+    
+    // Get today's examination records
+    const todaysRecords = getMuayeneKayitlariByDate(yil, ay, gun);
+    
+    if (todaysRecords.length === 0) {
+        // No records for today, keep the list empty
+        muayeneListesi = [];
+        renderMuayeneListesi();
+        gruplanmisListe.innerHTML = '';
+        listeKaydetBtn.style.display = 'none';
+        listeYazdirBtn.style.display = 'none';
+        return;
+    }
+    
+    // Populate muayeneListesi with today's patients
+    muayeneListesi = [];
+    todaysRecords.forEach(record => {
+        // Try to find full patient data from hastalar
+        const fullPatient = hastalar.find(h => h.tc === record.tc);
+        if (fullPatient) {
+            muayeneListesi.push(fullPatient);
+        } else {
+            // Use record data if full patient not found
+            muayeneListesi.push({
+                tc: record.tc,
+                adiSoyadi: record.adiSoyadi,
+                kogus: record.kogus,
+                babaAdi: '',
+                dogumYeriTarihi: ''
+            });
+        }
+    });
+    
+    // Render the list
+    renderMuayeneListesi();
+    
+    // Auto-generate grouped list
+    if (muayeneListesi.length > 0) {
+        // Make list unique by TC number
+        const uniqueByTC = {};
+        muayeneListesi.forEach(h => {
+            if (!uniqueByTC[h.tc]) {
+                uniqueByTC[h.tc] = h;
+            }
+        });
+        const uniqueList = Object.values(uniqueByTC);
+
+        const grouped = {};
+        uniqueList.forEach(h => {
+            if (!grouped[h.kogus]) grouped[h.kogus] = [];
+            grouped[h.kogus].push(h);
+        });
+
+        const sortedWards = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'tr'));
+
+        let html = '';
+        let siraNo = 1;
+        sortedWards.forEach(ward => {
+            html += `<div class="kogus-group">
+                <div class="kogus-baslik">${escapeHtml(ward)}</div>
+                <table>
+                    <thead><tr>
+                        <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Baba Adı</th><th>Doğum Yeri</th>
+                    </tr></thead><tbody>`;
+            grouped[ward].forEach(h => {
+                html += `<tr>
+                    <td>${siraNo++}</td>
+                    <td>${escapeHtml(h.adiSoyadi)}</td>
+                    <td>${escapeHtml(h.tc)}</td>
+                    <td>${escapeHtml(h.babaAdi)}</td>
+                    <td>${escapeHtml(h.dogumYeriTarihi)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+        });
+        gruplanmisListe.innerHTML = html;
+        
+        // Show save and print buttons
+        listeKaydetBtn.style.display = 'inline-block';
+        listeYazdirBtn.style.display = 'inline-block';
+    }
+}
+
 // Modal yönetimi
 function modalGoster(hasta, mevcutKayit) {
     bekleyenHasta = hasta;
     const kayitTarih = new Date(mevcutKayit.tarih).toLocaleDateString('tr-TR');
-    uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 2 hafta içinde muayene hakkı kullanılmış.`;
+    uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 12 gün içinde muayene hakkı kullanılmış.`;
     uyariModal.classList.add('active');
 }
 
@@ -132,6 +296,8 @@ uyariModal.addEventListener('click', (e) => {
 const xmlFileInput = document.getElementById('xmlFileInput');
 const uploadArea = document.getElementById('uploadArea');
 const uploadStatus = document.getElementById('uploadStatus');
+const loadLocalXmlBtn = document.getElementById('loadLocalXmlBtn');
+const loadLocalJsonBtn = document.getElementById('loadLocalJsonBtn');
 
 function parseXmlText(xmlText) {
     hastalar = [];
@@ -189,21 +355,53 @@ function parseXmlText(xmlText) {
     });
 }
 
+function parseJsonText(jsonText) {
+    hastalar = [];
+    const data = JSON.parse(jsonText);
+    if (!Array.isArray(data)) {
+        throw new Error('JSON dosyası bir dizi içermelidir');
+    }
+    // Validate that each object has the required fields
+    const validData = data.filter(item => 
+        item && typeof item === 'object' && 
+        item.tc && item.adiSoyadi && item.kogus
+    );
+    if (validData.length === 0) {
+        throw new Error('JSON dosyasında geçerli hasta verisi bulunamadı');
+    }
+    hastalar = validData;
+}
+
 function handleXmlFile(file) {
-    if (!file || !file.name.toLowerCase().endsWith('.xml')) {
-        uploadStatus.textContent = 'Lütfen geçerli bir XML dosyası seçin!';
+    if (!file) {
+        uploadStatus.textContent = 'Lütfen geçerli bir dosya seçin!';
         uploadStatus.className = 'upload-status error';
         return;
     }
+    
+    const fileName = file.name.toLowerCase();
+    const isXml = fileName.endsWith('.xml');
+    const isJson = fileName.endsWith('.json');
+    
+    if (!isXml && !isJson) {
+        uploadStatus.textContent = 'Lütfen geçerli bir XML veya JSON dosyası seçin!';
+        uploadStatus.className = 'upload-status error';
+        return;
+    }
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            parseXmlText(e.target.result);
+            if (isXml) {
+                parseXmlText(e.target.result);
+            } else {
+                parseJsonText(e.target.result);
+            }
             uploadStatus.textContent = `"${escapeHtml(file.name)}" yüklendi – ${hastalar.length} hasta bulundu.`;
             uploadStatus.className = 'upload-status success';
             uploadArea.classList.add('uploaded');
         } catch (err) {
-            uploadStatus.textContent = 'XML dosyası okunamadı: ' + err.message;
+            uploadStatus.textContent = 'Dosya okunamadı: ' + err.message;
             uploadStatus.className = 'upload-status error';
         }
     };
@@ -230,6 +428,39 @@ uploadArea.addEventListener('drop', (e) => {
     uploadArea.classList.remove('dragover');
     if (e.dataTransfer.files.length > 0) {
         handleXmlFile(e.dataTransfer.files[0]);
+    }
+});
+
+// Load both local files button
+const loadBothFilesBtn = document.getElementById('loadBothFilesBtn');
+
+loadBothFilesBtn.addEventListener('click', async () => {
+    uploadStatus.textContent = 'Dosyalar yükleniyor...';
+    uploadStatus.className = 'upload-status';
+    
+    try {
+        // Load hastalar.json
+        const jsonResponse = await fetch('hastalar.json');
+        if (!jsonResponse.ok) {
+            throw new Error('hastalar.json bulunamadı');
+        }
+        const jsonText = await jsonResponse.text();
+        parseJsonText(jsonText);
+        
+        // Load tasnif.xml
+        const xmlResponse = await fetch('tasnif.xml');
+        if (!xmlResponse.ok) {
+            throw new Error('tasnif.xml bulunamadı');
+        }
+        const xmlText = await xmlResponse.text();
+        parseXmlText(xmlText);
+        
+        uploadStatus.textContent = `Her iki dosya yüklendi – ${hastalar.length} hasta bulundu.`;
+        uploadStatus.className = 'upload-status success';
+        uploadArea.classList.add('uploaded');
+    } catch (err) {
+        uploadStatus.textContent = 'Hata: ' + err.message;
+        uploadStatus.className = 'upload-status error';
     }
 });
 
@@ -326,7 +557,7 @@ function hastaEkle(hasta) {
     oneriListesi.innerHTML = '';
     selectedIndex = -1;
 
-    // 2 haftalık muayene kontrolü
+    // 12 günlük muayene kontrolü
     const mevcutKayit = sonIkiHaftaKontrol(hasta.tc);
     if (mevcutKayit) {
         modalGoster(hasta, mevcutKayit);
@@ -373,6 +604,8 @@ listeTemizleBtn.addEventListener('click', () => {
     muayeneListesi = [];
     renderMuayeneListesi();
     gruplanmisListe.innerHTML = '';
+    listeKaydetBtn.style.display = 'none';
+    listeYazdirBtn.style.display = 'none';
 });
 
 listeYazBtn.addEventListener('click', () => {
@@ -381,8 +614,17 @@ listeYazBtn.addEventListener('click', () => {
     // Muayene listesini kaydet
     muayeneListesiKaydet();
 
-    const grouped = {};
+    // Make list unique by TC number
+    const uniqueByTC = {};
     muayeneListesi.forEach(h => {
+        if (!uniqueByTC[h.tc]) {
+            uniqueByTC[h.tc] = h;
+        }
+    });
+    const uniqueList = Object.values(uniqueByTC);
+
+    const grouped = {};
+    uniqueList.forEach(h => {
         if (!grouped[h.kogus]) grouped[h.kogus] = [];
         grouped[h.kogus].push(h);
     });
@@ -410,6 +652,81 @@ listeYazBtn.addEventListener('click', () => {
         html += '</tbody></table></div>';
     });
     gruplanmisListe.innerHTML = html;
+    
+    // Show save and print buttons
+    listeKaydetBtn.style.display = 'inline-block';
+    listeYazdirBtn.style.display = 'inline-block';
+});
+
+// Save examination list
+listeKaydetBtn.addEventListener('click', () => {
+    if (muayeneListesi.length === 0) return;
+    
+    const bugun = new Date();
+    const tarih = bugun.toLocaleDateString('tr-TR');
+    const saat = bugun.toLocaleTimeString('tr-TR');
+    
+    // Create CSV content
+    let csvContent = '\uFEFF'; // UTF-8 BOM for Excel
+    csvContent += `Revir Muayene Listesi - ${tarih} ${saat}\n\n`;
+    
+    // Make list unique by TC number
+    const uniqueByTC = {};
+    muayeneListesi.forEach(h => {
+        if (!uniqueByTC[h.tc]) {
+            uniqueByTC[h.tc] = h;
+        }
+    });
+    const uniqueList = Object.values(uniqueByTC);
+    
+    const grouped = {};
+    uniqueList.forEach(h => {
+        if (!grouped[h.kogus]) grouped[h.kogus] = [];
+        grouped[h.kogus].push(h);
+    });
+    
+    const sortedWards = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'tr'));
+    let siraNo = 1;
+    
+    sortedWards.forEach(ward => {
+        csvContent += `\n${ward}\n`;
+        csvContent += '#,Adı Soyadı,TC Kimlik,Baba Adı,Doğum Yeri\n';
+        grouped[ward].forEach(h => {
+            // Escape CSV fields by replacing " with "" and wrapping in quotes
+            const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+            csvContent += `${siraNo++},${escapeCsv(h.adiSoyadi)},${escapeCsv(h.tc)},${escapeCsv(h.babaAdi)},${escapeCsv(h.dogumYeriTarihi)}\n`;
+        });
+    });
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `muayene-listesi-${bugun.toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+// Print examination list
+listeYazdirBtn.addEventListener('click', () => {
+    if (muayeneListesi.length === 0) return;
+    
+    // Set print date
+    const bugun = new Date();
+    const tarih = bugun.toLocaleDateString('tr-TR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    const saat = bugun.toLocaleTimeString('tr-TR');
+    document.getElementById('printDate').textContent = `${tarih} - ${saat}`;
+    
+    // Trigger print
+    window.print();
 });
 
 document.addEventListener('click', (e) => {
@@ -436,8 +753,6 @@ const sonrakiAyBtn = document.getElementById('sonrakiAyBtn');
 const gunDetaySection = document.getElementById('gunDetaySection');
 const gunDetayBaslik = document.getElementById('gunDetayBaslik');
 const gunMuayeneListesi = document.getElementById('gunMuayeneListesi');
-const takvimHastaAraInput = document.getElementById('takvimHastaAraInput');
-const takvimOneriListesi = document.getElementById('takvimOneriListesi');
 
 function takvimKayitlariGetir() {
     try {
@@ -455,10 +770,31 @@ function gunAnahtari(yil, ay, gun) {
     return `${yil}-${String(ay + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
 }
 
+function getMuayeneKayitlariByDate(yil, ay, gun) {
+    const muayeneKayitlari = muayeneKayitlariGetir();
+    return muayeneKayitlari.filter(k => {
+        const kayitTarih = new Date(k.tarih);
+        return kayitTarih.getFullYear() === yil &&
+               kayitTarih.getMonth() === ay &&
+               kayitTarih.getDate() === gun;
+    });
+}
+
 function takvimCiz() {
     takvimBaslik.textContent = `${ayIsimleri[takvimAy]} ${takvimYil}`;
-    const kayitlar = takvimKayitlariGetir();
+    const muayeneKayitlari = muayeneKayitlariGetir();
     const bugun = new Date();
+
+    // Pre-group records by date for O(1) lookup
+    const kayitlarByDate = {};
+    muayeneKayitlari.forEach(k => {
+        const kayitTarih = new Date(k.tarih);
+        if (kayitTarih.getFullYear() === takvimYil && kayitTarih.getMonth() === takvimAy) {
+            const gun = kayitTarih.getDate();
+            if (!kayitlarByDate[gun]) kayitlarByDate[gun] = [];
+            kayitlarByDate[gun].push(k);
+        }
+    });
 
     let html = '';
     gunIsimleri.forEach(g => {
@@ -477,8 +813,7 @@ function takvimCiz() {
     }
 
     for (let gun = 1; gun <= aydakiGunSayisi; gun++) {
-        const anahtar = gunAnahtari(takvimYil, takvimAy, gun);
-        const gunKayitlari = kayitlar[anahtar] || [];
+        const gunKayitlari = kayitlarByDate[gun] || [];
         const bugunMu = bugun.getFullYear() === takvimYil && bugun.getMonth() === takvimAy && bugun.getDate() === gun;
         const seciliMi = seciliGun === gun;
 
@@ -511,20 +846,28 @@ function gunDetayGoster() {
         return;
     }
     gunDetaySection.style.display = 'block';
-    const anahtar = gunAnahtari(takvimYil, takvimAy, seciliGun);
     gunDetayBaslik.textContent = `${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil} - Muayene Listesi`;
 
-    const kayitlar = takvimKayitlariGetir();
-    const gunKayitlari = kayitlar[anahtar] || [];
+    const gunKayitlari = getMuayeneKayitlariByDate(takvimYil, takvimAy, seciliGun);
 
     if (gunKayitlari.length === 0) {
         gunMuayeneListesi.innerHTML = '<p class="empty-message">Bu gün için kayıt yok.</p>';
         return;
     }
 
-    let html = `<table>
+    // Sort by ward (koğuş) using Turkish locale
+    gunKayitlari.sort((a, b) => {
+        return (a.kogus || '').localeCompare(b.kogus || '', 'tr');
+    });
+
+    let html = `
+        <div class="gun-liste-actions">
+            <button id="gunListeYazdirBtn" class="btn btn-secondary">Yazdır</button>
+            <button id="gunListeTemizleBtn" class="btn btn-danger">Günün Listesini Sil</button>
+        </div>
+        <table id="gunMuayeneTable">
         <thead><tr>
-            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th></th>
+            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th class="no-print"></th>
         </tr></thead><tbody>`;
     gunKayitlari.forEach((h, i) => {
         html += `<tr>
@@ -532,25 +875,104 @@ function gunDetayGoster() {
             <td>${escapeHtml(h.adiSoyadi)}</td>
             <td>${escapeHtml(h.tc)}</td>
             <td>${escapeHtml(h.kogus)}</td>
-            <td><button class="sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
+            <td class="no-print"><button class="gun-hasta-sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
         </tr>`;
     });
     html += '</tbody></table>';
     gunMuayeneListesi.innerHTML = html;
-
-    gunMuayeneListesi.querySelectorAll('.sil-btn').forEach(btn => {
+    
+    // Add event listener for print button
+    const gunListeYazdirBtn = document.getElementById('gunListeYazdirBtn');
+    if (gunListeYazdirBtn) {
+        gunListeYazdirBtn.addEventListener('click', () => {
+            printCalendarDay();
+        });
+    }
+    
+    // Add event listener for clear all button
+    const gunListeTemizleBtn = document.getElementById('gunListeTemizleBtn');
+    if (gunListeTemizleBtn) {
+        gunListeTemizleBtn.addEventListener('click', () => {
+            if (confirm(`${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil} tarihindeki tüm kayıtları silmek istediğinizden emin misiniz?`)) {
+                gunListesiTemizle();
+            }
+        });
+    }
+    
+    // Add event listeners for individual delete buttons
+    gunMuayeneListesi.querySelectorAll('.gun-hasta-sil-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const kayitlar = takvimKayitlariGetir();
-            kayitlar[anahtar] = (kayitlar[anahtar] || []).filter(h => h.tc !== btn.dataset.tc);
-            if (kayitlar[anahtar].length === 0) delete kayitlar[anahtar];
-            takvimKayitlariKaydet(kayitlar);
-            takvimCiz();
-            gunDetayGoster();
+            const tc = btn.dataset.tc;
+            gundenHastaSil(tc);
         });
     });
 }
 
-// Calendar patient search
+function printCalendarDay() {
+    // Store current print date info for calendar print
+    const printInfo = {
+        date: `${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil}`,
+        time: new Date().toLocaleTimeString('tr-TR')
+    };
+    
+    // Create a temporary print container
+    const printContainer = document.createElement('div');
+    printContainer.id = 'calendarPrintContainer';
+    printContainer.innerHTML = `
+        <div class="calendar-print-header">
+            <h1>Revir Muayene Listesi</h1>
+            <div class="calendar-print-date">${printInfo.date} - ${printInfo.time}</div>
+        </div>
+        ${gunMuayeneListesi.innerHTML}
+    `;
+    
+    // Add to body
+    document.body.appendChild(printContainer);
+    
+    // Trigger print
+    window.print();
+    
+    // Remove temporary container after print
+    setTimeout(() => {
+        document.body.removeChild(printContainer);
+    }, 100);
+}
+
+function gundenHastaSil(tc) {
+    const kayitlar = muayeneKayitlariGetir();
+    const yeniKayitlar = kayitlar.filter(k => {
+        const kTarih = new Date(k.tarih);
+        const ayniGun = kTarih.getFullYear() === takvimYil &&
+                       kTarih.getMonth() === takvimAy &&
+                       kTarih.getDate() === seciliGun;
+        // Remove only if it's the same day and same TC
+        return !(ayniGun && k.tc === tc);
+    });
+    
+    muayeneKayitlariKaydet(yeniKayitlar);
+    takvimCiz();
+    gunDetayGoster();
+}
+
+function gunListesiTemizle() {
+    const kayitlar = muayeneKayitlariGetir();
+    const yeniKayitlar = kayitlar.filter(k => {
+        const kTarih = new Date(k.tarih);
+        // Keep only records that are NOT from the selected day
+        return !(kTarih.getFullYear() === takvimYil &&
+                 kTarih.getMonth() === takvimAy &&
+                 kTarih.getDate() === seciliGun);
+    });
+    
+    muayeneKayitlariKaydet(yeniKayitlar);
+    takvimCiz();
+    gunDetayGoster();
+}
+
+// Calendar patient search and add
+const takvimHastaAraInput = document.getElementById('takvimHastaAraInput');
+const takvimOneriListesi = document.getElementById('takvimOneriListesi');
+const takvimManuelEkleBtn = document.getElementById('takvimManuelEkleBtn');
 let takvimSelectedIndex = -1;
 
 takvimHastaAraInput.addEventListener('input', () => {
@@ -576,7 +998,7 @@ takvimHastaAraInput.addEventListener('input', () => {
     takvimOneriListesi.innerHTML = results.map((h, i) =>
         `<div class="oneri-item" data-index="${i}">
             <strong>${escapeHtml(h.adiSoyadi)}</strong>
-            <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)}</div>
+            <div class="oneri-detay">${escapeHtml(h.kogus || 'Koğuş bilgisi yok')} | TC: ${escapeHtml(h.tc)}</div>
         </div>`
     ).join('');
     takvimOneriListesi.classList.add('active');
@@ -596,11 +1018,11 @@ takvimHastaAraInput.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         takvimSelectedIndex = Math.min(takvimSelectedIndex + 1, items.length - 1);
-        updateSelection(items);
+        updateTakvimSelection(items);
     } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         takvimSelectedIndex = Math.max(takvimSelectedIndex - 1, 0);
-        updateSelection(items);
+        updateTakvimSelection(items);
     } else if (e.key === 'Enter') {
         e.preventDefault();
         if (takvimSelectedIndex >= 0 && takvimSelectedIndex < items.length) {
@@ -613,33 +1035,77 @@ takvimHastaAraInput.addEventListener('keydown', (e) => {
     }
 });
 
+function updateTakvimSelection(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle('selected', i === takvimSelectedIndex);
+    });
+    if (takvimSelectedIndex >= 0) {
+        items[takvimSelectedIndex].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+// Manual add button - add by name only
+takvimManuelEkleBtn.addEventListener('click', () => {
+    const isim = takvimHastaAraInput.value.trim();
+    if (!isim || seciliGun === null) return;
+    
+    // Check if patient exists in database
+    const existingPatient = hastalar.find(h => 
+        turkishLowerCase(h.adiSoyadi) === turkishLowerCase(isim)
+    );
+    
+    if (existingPatient) {
+        takvimHastaEkle(existingPatient);
+    } else {
+        // Add as manual entry without full patient data
+        // Use timestamp + random component for unique ID
+        const randomSuffix = Math.floor(Math.random() * 1000);
+        const manuelHasta = {
+            tc: 'MANUEL-' + Date.now() + '-' + randomSuffix,
+            adiSoyadi: isim,
+            kogus: 'Manuel Giriş',
+            babaAdi: '',
+            dogumYeriTarihi: ''
+        };
+        takvimHastaEkle(manuelHasta);
+    }
+});
+
 function takvimHastaEkle(hasta) {
     if (seciliGun === null) return;
-    const anahtar = gunAnahtari(takvimYil, takvimAy, seciliGun);
-    const kayitlar = takvimKayitlariGetir();
-    if (!kayitlar[anahtar]) kayitlar[anahtar] = [];
-
-    if (kayitlar[anahtar].some(h => h.tc === hasta.tc)) {
-        takvimHastaAraInput.value = '';
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        takvimHastaAraInput.placeholder = 'Bu hasta zaten bu günde kayıtlı!';
-        setTimeout(() => { takvimHastaAraInput.placeholder = 'Hasta adı yazın...'; }, 2000);
+    
+    const kayitTarihi = new Date(takvimYil, takvimAy, seciliGun);
+    const kayitlar = muayeneKayitlariGetir();
+    
+    // Check if patient already added to this day
+    const mevcutKayit = kayitlar.find(k => {
+        const kTarih = new Date(k.tarih);
+        return k.tc === hasta.tc && 
+               kTarih.getFullYear() === takvimYil &&
+               kTarih.getMonth() === takvimAy &&
+               kTarih.getDate() === seciliGun;
+    });
+    
+    if (mevcutKayit) {
+        alert('Bu hasta zaten bu güne eklenmiş!');
         return;
     }
-
-    kayitlar[anahtar].push({
+    
+    // Add to calendar
+    kayitlar.push({
         tc: hasta.tc,
         adiSoyadi: hasta.adiSoyadi,
-        kogus: hasta.kogus
+        kogus: hasta.kogus || 'Manuel Giriş',
+        tarih: kayitTarihi.toISOString()
     });
-    takvimKayitlariKaydet(kayitlar);
-
+    
+    muayeneKayitlariKaydet(kayitlar);
+    
     takvimHastaAraInput.value = '';
     takvimOneriListesi.classList.remove('active');
     takvimOneriListesi.innerHTML = '';
     takvimSelectedIndex = -1;
-
+    
     takvimCiz();
     gunDetayGoster();
 }
@@ -660,14 +1126,148 @@ sonrakiAyBtn.addEventListener('click', () => {
     takvimCiz();
 });
 
-// Close calendar suggestion list on outside click
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.gun-detay-ekle')) {
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        takvimSelectedIndex = -1;
+// Initial calendar render
+takvimCiz();
+
+// Bulk import functionality
+const bulkImportText = document.getElementById('bulkImportText');
+const bulkImportBtn = document.getElementById('bulkImportBtn');
+const bulkImportStatus = document.getElementById('bulkImportStatus');
+
+bulkImportBtn.addEventListener('click', () => {
+    const text = bulkImportText.value.trim();
+    if (!text) {
+        bulkImportStatus.textContent = 'Lütfen liste metnini yapıştırın!';
+        bulkImportStatus.className = 'import-status error';
+        return;
+    }
+    
+    try {
+        const results = parseBulkImportText(text);
+        
+        if (results.length === 0) {
+            bulkImportStatus.textContent = 'Hiç hasta kaydı bulunamadı!';
+            bulkImportStatus.className = 'import-status error';
+            return;
+        }
+        
+        const kayitlar = muayeneKayitlariGetir();
+        let eklenenSayisi = 0;
+        let atlanmaSayisi = 0;
+        
+        results.forEach(result => {
+            // Check for duplicates based on TC and date
+            const mevcutKayit = kayitlar.find(k => {
+                const kTarih = new Date(k.tarih);
+                const rTarih = new Date(result.tarih);
+                return k.tc === result.tc && 
+                       kTarih.getFullYear() === rTarih.getFullYear() &&
+                       kTarih.getMonth() === rTarih.getMonth() &&
+                       kTarih.getDate() === rTarih.getDate();
+            });
+            
+            if (!mevcutKayit) {
+                // Use data from parser which already has koğuş if found
+                kayitlar.push({
+                    tc: result.tc,
+                    adiSoyadi: result.adiSoyadi,
+                    kogus: result.kogus || 'İçe Aktarılan',
+                    tarih: result.tarih
+                });
+                eklenenSayisi++;
+            } else {
+                atlanmaSayisi++;
+            }
+        });
+        
+        muayeneKayitlariKaydet(kayitlar);
+        takvimCiz();
+        
+        bulkImportStatus.textContent = `✓ ${eklenenSayisi} hasta eklendi${atlanmaSayisi > 0 ? `, ${atlanmaSayisi} kayıt zaten mevcut (atlandı)` : ''}`;
+        bulkImportStatus.className = 'import-status success';
+        
+        // Clear textarea after successful import
+        bulkImportText.value = '';
+        
+    } catch (err) {
+        bulkImportStatus.textContent = '✗ Hata: ' + err.message;
+        bulkImportStatus.className = 'import-status error';
     }
 });
 
-// Initial calendar render
-takvimCiz();
+function parseBulkImportText(text) {
+    const results = [];
+    const lines = text.split('\n');
+    
+    // MBYS format pattern explanation:
+    // Group 1: TC number with asterisks (e.g., 10*******34)
+    // Group 2: Full name (e.g., DOĞUKAN KUŞ or ALİCAN BENER DURUKAN)
+    // Group 3: Date in DD/MM/YYYY format (e.g., 11/02/2026)
+    // Example line: 10*******34	MBYS		DOĞUKAN KUŞ			11/02/2026 09:20:55	İşleme Alındı
+    // The pattern captures: TC, skips MBYS and empty tabs, captures name, then captures date
+    // Case-insensitive to handle both uppercase and mixed case names
+    const linePattern = /^(\d{2}\*+\d{2})\s+MBYS\s+([A-Za-zÇĞİÖŞÜçğıöşü][A-Za-zÇĞİÖŞÜçğıöşü\s]*?)\s+(\d{2}\/\d{2}\/\d{4})/i;
+    
+    lines.forEach(line => {
+        const match = line.match(linePattern);
+        if (match) {
+            const tcPartial = match[1];  // TC with asterisks (e.g., 18*******76)
+            const adiSoyadi = match[2].trim();  // Full name
+            const tarihStr = match[3];  // Date string
+            
+            // Parse date (DD/MM/YYYY format)
+            const dateParts = tarihStr.split('/');
+            if (dateParts.length === 3) {
+                const day = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]) - 1; // JS months are 0-indexed
+                const year = parseInt(dateParts[2]);
+                const tarih = new Date(year, month, day);
+                
+                // Try to find patient by name and TC partial match
+                let tc = tcPartial;
+                let foundPatient = null;
+                
+                // Extract TC prefix and suffix from partial TC (e.g., 18*******76 -> prefix: 18, suffix: 76)
+                const tcPrefix = tcPartial.substring(0, 2);
+                const tcSuffix = tcPartial.substring(tcPartial.length - 2);
+                
+                // Find all patients with matching name
+                const matchingByName = hastalar.filter(h => 
+                    turkishLowerCase(h.adiSoyadi) === turkishLowerCase(adiSoyadi)
+                );
+                
+                if (matchingByName.length === 1) {
+                    // Single match by name - use it
+                    foundPatient = matchingByName[0];
+                } else if (matchingByName.length > 1) {
+                    // Multiple matches - use TC partial to disambiguate
+                    foundPatient = matchingByName.find(h => 
+                        h.tc.startsWith(tcPrefix) && h.tc.endsWith(tcSuffix)
+                    );
+                }
+                
+                if (foundPatient) {
+                    tc = foundPatient.tc;
+                    results.push({
+                        tc: tc,
+                        adiSoyadi: foundPatient.adiSoyadi,
+                        kogus: foundPatient.kogus,
+                        babaAdi: foundPatient.babaAdi || '',
+                        dogumYeriTarihi: foundPatient.dogumYeriTarihi || '',
+                        tarih: tarih.toISOString()
+                    });
+                } else {
+                    // Not found in database - add with partial info
+                    results.push({
+                        tc: tcPartial,
+                        adiSoyadi: adiSoyadi,
+                        kogus: 'İçe Aktarılan',
+                        tarih: tarih.toISOString()
+                    });
+                }
+            }
+        }
+    });
+    
+    return results;
+}

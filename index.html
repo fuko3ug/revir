@@ -7,7 +7,19 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- Entry/Splash Screen -->
+    <div id="entryScreen" class="entry-screen">
+        <div class="entry-content">
+            <h1>Revir Muayene Sistemi</h1>
+            <p class="entry-description">Hasta muayene listesi ve takvim yönetimi</p>
+            <button id="enterAppBtn" class="btn btn-primary btn-large">
+                Muayene Listesi Programına Giriş
+            </button>
+            <div id="loadingStatus" class="loading-status"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp" style="display: none;">
         <header>
             <h1>Revir Uygulaması</h1>
             <button id="themeToggleBtn" class="theme-toggle-btn" title="Tema Değiştir">🌙</button>
@@ -33,32 +45,69 @@
                     <p class="empty-message">Bu gün için kayıt yok.</p>
                 </div>
                 <div class="gun-detay-ekle">
+                    <h4>Kişi Ekle</h4>
                     <div class="search-wrapper">
-                        <input type="text" id="takvimHastaAraInput" class="input-field" placeholder="Hasta adı yazın..." autocomplete="off">
+                        <input type="text" id="takvimHastaAraInput" class="input-field" placeholder="Hasta adı yazın veya tam isim giriniz..." autocomplete="off">
                         <div id="takvimOneriListesi" class="oneri-listesi"></div>
                     </div>
+                    <button id="takvimManuelEkleBtn" class="btn btn-primary" style="margin-top: 10px;">Manuel Ekle</button>
                 </div>
+            </section>
+            <section class="card bulk-import-section">
+                <h3>Toplu Liste İçe Aktar</h3>
+                <p class="help-text">MBYS hasta listesini buraya yapıştırın (TC, Ad Soyad ve Tarih bilgileri otomatik çıkarılır)</p>
+                <textarea id="bulkImportText" class="bulk-import-textarea" placeholder="Hasta listesini buraya yapıştırın..."></textarea>
+                <button id="bulkImportBtn" class="btn btn-success">Listeyi İçe Aktar</button>
+                <div id="bulkImportStatus" class="import-status"></div>
             </section>
         </div>
 
         <div id="muayeneTab" class="tab-content">
 
         <section class="card xml-upload-section">
-            <h2>XML Dosyası Yükle</h2>
+            <h2>XML/JSON Dosyası Yükle</h2>
             <div class="upload-container">
                 <label for="xmlFileInput" class="upload-area" id="uploadArea" tabindex="0">
                     <span class="upload-icon">📁</span>
-                    <span class="upload-text">Tasnif XML dosyasını seçmek için tıklayın veya sürükleyip bırakın</span>
-                    <span class="upload-hint">Sadece .xml dosyaları kabul edilir</span>
+                    <span class="upload-text">Tasnif XML veya hastalar JSON dosyasını seçmek için tıklayın veya sürükleyip bırakın</span>
+                    <span class="upload-hint">XML ve JSON dosyaları kabul edilir</span>
                 </label>
-                <input type="file" id="xmlFileInput" accept=".xml" hidden>
+                <input type="file" id="xmlFileInput" accept=".xml,.json" hidden>
                 <p id="uploadStatus" class="upload-status"></p>
+                <div class="local-file-buttons">
+                    <button id="loadBothFilesBtn" class="btn btn-primary">Yerel Dosyaları Yükle (XML + JSON)</button>
+                </div>
+                <details class="local-file-help">
+                    <summary>Yerel dosya erişimi için yardım</summary>
+                    <div class="help-content">
+                        <p><strong>⚠️ Güvenlik Notu:</strong> Chrome'u özel modda çalıştırmak güvenlik risklerine neden olabilir. İşiniz bittiğinde normal Chrome'u kullanmaya geri dönün.</p>
+                        <p><strong>Chrome'da yerel dosya erişimi:</strong></p>
+                        <ol>
+                            <li>Chrome'u kapatın</li>
+                            <li>Kısayolu sağ tıklayıp "Özellikler" seçin</li>
+                            <li>Hedef alanına şunu ekleyin: <code>--allow-file-access-from-files</code></li>
+                            <li>Örnek: <code>"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files</code></li>
+                            <li>Chrome'u bu kısayoldan başlatın</li>
+                            <li><strong>Önemli:</strong> İşiniz bittiğinde Chrome'u kapatıp normal şekilde tekrar açın</li>
+                        </ol>
+                        <p><strong>Önerilen Alternatif:</strong> Python ile yerel sunucu başlatın (daha güvenli):</p>
+                        <code>python -m http.server 8000</code>
+                        <p>Sonra <code>http://localhost:8000</code> adresini açın</p>
+                    </div>
+                </details>
             </div>
         </section>
 
         <section class="card muayene-section">
-            <h2>Muayene Listesi Oluştur</h2>
-            <div class="muayene-container">
+            <div class="print-header" style="display:none;">
+                <h1>Revir Muayene Listesi</h1>
+                <div class="print-date" id="printDate"></div>
+            </div>
+            <h2 class="collapsible-header" id="muayeneOlusturHeader">
+                <span>Muayene Listesi Oluştur</span>
+                <span class="collapse-icon">▼</span>
+            </h2>
+            <div class="muayene-container" id="muayeneOlusturContainer">
                 <div class="search-wrapper">
                     <input type="text" id="hastaAraInput" class="input-field" placeholder="Hasta adı yazın..." autocomplete="off">
                     <div id="oneriListesi" class="oneri-listesi"></div>
@@ -69,6 +118,8 @@
                 <div class="muayene-actions">
                     <button id="listeTemizleBtn" class="btn btn-danger">Listeyi Temizle</button>
                     <button id="listeYazBtn" class="btn btn-primary">Muayene Listesi Yap</button>
+                    <button id="listeKaydetBtn" class="btn btn-success" style="display:none;">Kaydet</button>
+                    <button id="listeYazdirBtn" class="btn btn-secondary" style="display:none;">Yazdır</button>
                 </div>
                 <div id="gruplanmisListe" class="gruplanmis-liste"></div>
             </div>
