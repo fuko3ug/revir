@@ -33,6 +33,8 @@ async function loadBothFiles() {
         setTimeout(() => {
             entryScreen.style.display = 'none';
             mainApp.style.display = 'block';
+            // Load today's examination list after app is displayed
+            loadTodaysExaminationList();
         }, 800);
         
         return true;
@@ -83,6 +85,11 @@ tabButtons.forEach(btn => {
         btn.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
         document.getElementById(btn.dataset.tab + 'Tab').style.display = 'block';
+        
+        // Load today's examination list when switching to Muayene tab
+        if (btn.dataset.tab === 'muayene') {
+            loadTodaysExaminationList();
+        }
     });
 });
 
@@ -149,6 +156,95 @@ function muayeneListesiKaydet() {
         });
     });
     muayeneKayitlariKaydet(guncelKayitlar);
+}
+
+function loadTodaysExaminationList() {
+    // Get today's date
+    const bugun = new Date();
+    const yil = bugun.getFullYear();
+    const ay = bugun.getMonth();
+    const gun = bugun.getDate();
+    
+    // Get today's examination records
+    const todaysRecords = getMuayeneKayitlariByDate(yil, ay, gun);
+    
+    if (todaysRecords.length === 0) {
+        // No records for today, keep the list empty
+        muayeneListesi = [];
+        renderMuayeneListesi();
+        gruplanmisListe.innerHTML = '';
+        listeKaydetBtn.style.display = 'none';
+        listeYazdirBtn.style.display = 'none';
+        return;
+    }
+    
+    // Populate muayeneListesi with today's patients
+    muayeneListesi = [];
+    todaysRecords.forEach(record => {
+        // Try to find full patient data from hastalar
+        const fullPatient = hastalar.find(h => h.tc === record.tc);
+        if (fullPatient) {
+            muayeneListesi.push(fullPatient);
+        } else {
+            // Use record data if full patient not found
+            muayeneListesi.push({
+                tc: record.tc,
+                adiSoyadi: record.adiSoyadi,
+                kogus: record.kogus,
+                babaAdi: '',
+                dogumYeriTarihi: ''
+            });
+        }
+    });
+    
+    // Render the list
+    renderMuayeneListesi();
+    
+    // Auto-generate grouped list
+    if (muayeneListesi.length > 0) {
+        // Make list unique by TC number
+        const uniqueByTC = {};
+        muayeneListesi.forEach(h => {
+            if (!uniqueByTC[h.tc]) {
+                uniqueByTC[h.tc] = h;
+            }
+        });
+        const uniqueList = Object.values(uniqueByTC);
+
+        const grouped = {};
+        uniqueList.forEach(h => {
+            if (!grouped[h.kogus]) grouped[h.kogus] = [];
+            grouped[h.kogus].push(h);
+        });
+
+        const sortedWards = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'tr'));
+
+        let html = '';
+        let siraNo = 1;
+        sortedWards.forEach(ward => {
+            html += `<div class="kogus-group">
+                <div class="kogus-baslik">${escapeHtml(ward)}</div>
+                <table>
+                    <thead><tr>
+                        <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Baba Adı</th><th>Doğum Yeri</th>
+                    </tr></thead><tbody>`;
+            grouped[ward].forEach(h => {
+                html += `<tr>
+                    <td>${siraNo++}</td>
+                    <td>${escapeHtml(h.adiSoyadi)}</td>
+                    <td>${escapeHtml(h.tc)}</td>
+                    <td>${escapeHtml(h.babaAdi)}</td>
+                    <td>${escapeHtml(h.dogumYeriTarihi)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+        });
+        gruplanmisListe.innerHTML = html;
+        
+        // Show save and print buttons
+        listeKaydetBtn.style.display = 'inline-block';
+        listeYazdirBtn.style.display = 'inline-block';
+    }
 }
 
 // Modal yönetimi
@@ -755,11 +851,12 @@ function gunDetayGoster() {
 
     let html = `
         <div class="gun-liste-actions">
+            <button id="gunListeYazdirBtn" class="btn btn-secondary">Yazdır</button>
             <button id="gunListeTemizleBtn" class="btn btn-danger">Günün Listesini Sil</button>
         </div>
-        <table>
+        <table id="gunMuayeneTable">
         <thead><tr>
-            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th></th>
+            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th class="no-print"></th>
         </tr></thead><tbody>`;
     gunKayitlari.forEach((h, i) => {
         html += `<tr>
@@ -767,11 +864,19 @@ function gunDetayGoster() {
             <td>${escapeHtml(h.adiSoyadi)}</td>
             <td>${escapeHtml(h.tc)}</td>
             <td>${escapeHtml(h.kogus)}</td>
-            <td><button class="gun-hasta-sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
+            <td class="no-print"><button class="gun-hasta-sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
         </tr>`;
     });
     html += '</tbody></table>';
     gunMuayeneListesi.innerHTML = html;
+    
+    // Add event listener for print button
+    const gunListeYazdirBtn = document.getElementById('gunListeYazdirBtn');
+    if (gunListeYazdirBtn) {
+        gunListeYazdirBtn.addEventListener('click', () => {
+            printCalendarDay();
+        });
+    }
     
     // Add event listener for clear all button
     const gunListeTemizleBtn = document.getElementById('gunListeTemizleBtn');
@@ -790,6 +895,36 @@ function gunDetayGoster() {
             gundenHastaSil(tc);
         });
     });
+}
+
+function printCalendarDay() {
+    // Store current print date info for calendar print
+    const printInfo = {
+        date: `${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil}`,
+        time: new Date().toLocaleTimeString('tr-TR')
+    };
+    
+    // Create a temporary print container
+    const printContainer = document.createElement('div');
+    printContainer.id = 'calendarPrintContainer';
+    printContainer.innerHTML = `
+        <div class="calendar-print-header">
+            <h1>Revir Muayene Listesi</h1>
+            <div class="calendar-print-date">${printInfo.date} - ${printInfo.time}</div>
+        </div>
+        ${gunMuayeneListesi.innerHTML}
+    `;
+    
+    // Add to body
+    document.body.appendChild(printContainer);
+    
+    // Trigger print
+    window.print();
+    
+    // Remove temporary container after print
+    setTimeout(() => {
+        document.body.removeChild(printContainer);
+    }, 100);
 }
 
 function gundenHastaSil(tc) {
