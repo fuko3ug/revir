@@ -1,72 +1,14 @@
-// Counter functionality
-let counter = 0;
-const counterElement = document.getElementById('counter');
-const incrementBtn = document.getElementById('incrementBtn');
-const decrementBtn = document.getElementById('decrementBtn');
-const resetBtn = document.getElementById('resetBtn');
+// Theme toggle
+const themeToggleBtn = document.getElementById('themeToggleBtn');
 
-function updateCounter() {
-    counterElement.textContent = counter;
-    // Add animation
-    counterElement.style.transform = 'scale(1.2)';
-    setTimeout(() => {
-        counterElement.style.transform = 'scale(1)';
-    }, 200);
+function updateThemeIcon() {
+    themeToggleBtn.textContent = document.body.classList.contains('dark-theme') ? '☀️' : '🌙';
 }
 
-incrementBtn.addEventListener('click', () => {
-    counter++;
-    updateCounter();
-});
-
-decrementBtn.addEventListener('click', () => {
-    counter--;
-    updateCounter();
-});
-
-resetBtn.addEventListener('click', () => {
-    counter = 0;
-    updateCounter();
-});
-
-// Greeting functionality
-const nameInput = document.getElementById('nameInput');
-const greetBtn = document.getElementById('greetBtn');
-const greetingMessage = document.getElementById('greetingMessage');
-
-greetBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim();
-    if (name) {
-        greetingMessage.textContent = `Merhaba, ${name}! Hoş geldiniz! 👋`;
-        greetingMessage.style.opacity = '0';
-        setTimeout(() => {
-            greetingMessage.style.opacity = '1';
-        }, 50);
-    } else {
-        greetingMessage.textContent = 'Lütfen adınızı girin! 😊';
-        greetingMessage.style.color = '#e74c3c';
-    }
-});
-
-// Allow Enter key to submit
-nameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        greetBtn.click();
-    }
-});
-
-// Theme switcher
-const lightThemeBtn = document.getElementById('lightThemeBtn');
-const darkThemeBtn = document.getElementById('darkThemeBtn');
-
-lightThemeBtn.addEventListener('click', () => {
-    document.body.classList.remove('dark-theme');
-    localStorage.setItem('theme', 'light');
-});
-
-darkThemeBtn.addEventListener('click', () => {
-    document.body.classList.add('dark-theme');
-    localStorage.setItem('theme', 'dark');
+themeToggleBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark-theme');
+    localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    updateThemeIcon();
 });
 
 // Load saved theme on page load
@@ -75,11 +17,19 @@ window.addEventListener('DOMContentLoaded', () => {
     if (savedTheme === 'dark') {
         document.body.classList.add('dark-theme');
     }
+    updateThemeIcon();
 });
 
-// Add smooth transition to counter
-counterElement.style.transition = 'transform 0.2s ease';
-greetingMessage.style.transition = 'opacity 0.3s ease';
+// Tab navigation
+const tabButtons = document.querySelectorAll('.tab-btn');
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
+        document.getElementById(btn.dataset.tab + 'Tab').style.display = 'block';
+    });
+});
 
 // Muayene Listesi functionality
 let hastalar = [];
@@ -469,3 +419,255 @@ document.addEventListener('click', (e) => {
         selectedIndex = -1;
     }
 });
+
+// ==================== Takvim (Calendar) ====================
+const ayIsimleri = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const gunIsimleri = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+let takvimYil = new Date().getFullYear();
+let takvimAy = new Date().getMonth();
+let seciliGun = null;
+
+const takvimBaslik = document.getElementById('takvimBaslik');
+const takvimGrid = document.getElementById('takvimGrid');
+const oncekiAyBtn = document.getElementById('oncekiAyBtn');
+const sonrakiAyBtn = document.getElementById('sonrakiAyBtn');
+const gunDetaySection = document.getElementById('gunDetaySection');
+const gunDetayBaslik = document.getElementById('gunDetayBaslik');
+const gunMuayeneListesi = document.getElementById('gunMuayeneListesi');
+const takvimHastaAraInput = document.getElementById('takvimHastaAraInput');
+const takvimOneriListesi = document.getElementById('takvimOneriListesi');
+
+function takvimKayitlariGetir() {
+    try {
+        return JSON.parse(localStorage.getItem('takvimKayitlari')) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function takvimKayitlariKaydet(kayitlar) {
+    localStorage.setItem('takvimKayitlari', JSON.stringify(kayitlar));
+}
+
+function gunAnahtari(yil, ay, gun) {
+    return `${yil}-${String(ay + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
+}
+
+function takvimCiz() {
+    takvimBaslik.textContent = `${ayIsimleri[takvimAy]} ${takvimYil}`;
+    const kayitlar = takvimKayitlariGetir();
+    const bugun = new Date();
+
+    let html = '';
+    gunIsimleri.forEach(g => {
+        html += `<div class="takvim-gun-baslik">${g}</div>`;
+    });
+
+    const ilkGun = new Date(takvimYil, takvimAy, 1);
+    let baslangicGunu = ilkGun.getDay();
+    // Convert Sunday=0 to Monday-start: Mon=0,...,Sun=6
+    baslangicGunu = (baslangicGunu + 6) % 7;
+
+    const aydakiGunSayisi = new Date(takvimYil, takvimAy + 1, 0).getDate();
+
+    for (let i = 0; i < baslangicGunu; i++) {
+        html += '<div class="takvim-gun bos"></div>';
+    }
+
+    for (let gun = 1; gun <= aydakiGunSayisi; gun++) {
+        const anahtar = gunAnahtari(takvimYil, takvimAy, gun);
+        const gunKayitlari = kayitlar[anahtar] || [];
+        const bugunMu = bugun.getFullYear() === takvimYil && bugun.getMonth() === takvimAy && bugun.getDate() === gun;
+        const seciliMi = seciliGun === gun;
+
+        let classes = 'takvim-gun';
+        if (bugunMu) classes += ' bugun';
+        if (seciliMi) classes += ' secili';
+
+        let badge = '';
+        if (gunKayitlari.length > 0) {
+            badge = `<span class="gun-badge">${gunKayitlari.length}</span>`;
+        }
+
+        html += `<div class="${classes}" data-gun="${gun}">${gun}${badge}</div>`;
+    }
+
+    takvimGrid.innerHTML = html;
+
+    takvimGrid.querySelectorAll('.takvim-gun:not(.bos)').forEach(el => {
+        el.addEventListener('click', () => {
+            seciliGun = parseInt(el.dataset.gun);
+            takvimCiz();
+            gunDetayGoster();
+        });
+    });
+}
+
+function gunDetayGoster() {
+    if (seciliGun === null) {
+        gunDetaySection.style.display = 'none';
+        return;
+    }
+    gunDetaySection.style.display = 'block';
+    const anahtar = gunAnahtari(takvimYil, takvimAy, seciliGun);
+    gunDetayBaslik.textContent = `${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil} - Muayene Listesi`;
+
+    const kayitlar = takvimKayitlariGetir();
+    const gunKayitlari = kayitlar[anahtar] || [];
+
+    if (gunKayitlari.length === 0) {
+        gunMuayeneListesi.innerHTML = '<p class="empty-message">Bu gün için kayıt yok.</p>';
+        return;
+    }
+
+    let html = `<table>
+        <thead><tr>
+            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th></th>
+        </tr></thead><tbody>`;
+    gunKayitlari.forEach((h, i) => {
+        html += `<tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(h.adiSoyadi)}</td>
+            <td>${escapeHtml(h.tc)}</td>
+            <td>${escapeHtml(h.kogus)}</td>
+            <td><button class="sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    gunMuayeneListesi.innerHTML = html;
+
+    gunMuayeneListesi.querySelectorAll('.sil-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const kayitlar = takvimKayitlariGetir();
+            kayitlar[anahtar] = (kayitlar[anahtar] || []).filter(h => h.tc !== btn.dataset.tc);
+            if (kayitlar[anahtar].length === 0) delete kayitlar[anahtar];
+            takvimKayitlariKaydet(kayitlar);
+            takvimCiz();
+            gunDetayGoster();
+        });
+    });
+}
+
+// Calendar patient search
+let takvimSelectedIndex = -1;
+
+takvimHastaAraInput.addEventListener('input', () => {
+    const query = turkishLowerCase(takvimHastaAraInput.value.trim());
+    takvimSelectedIndex = -1;
+
+    if (query.length < 2) {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        return;
+    }
+
+    const results = hastalar.filter(h =>
+        turkishLowerCase(h.adiSoyadi).includes(query)
+    ).slice(0, 20);
+
+    if (results.length === 0) {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        return;
+    }
+
+    takvimOneriListesi.innerHTML = results.map((h, i) =>
+        `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+            <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)}</div>
+        </div>`
+    ).join('');
+    takvimOneriListesi.classList.add('active');
+
+    takvimOneriListesi.querySelectorAll('.oneri-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const idx = parseInt(item.dataset.index);
+            takvimHastaEkle(results[idx]);
+        });
+    });
+});
+
+takvimHastaAraInput.addEventListener('keydown', (e) => {
+    const items = takvimOneriListesi.querySelectorAll('.oneri-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        takvimSelectedIndex = Math.min(takvimSelectedIndex + 1, items.length - 1);
+        updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        takvimSelectedIndex = Math.max(takvimSelectedIndex - 1, 0);
+        updateSelection(items);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (takvimSelectedIndex >= 0 && takvimSelectedIndex < items.length) {
+            items[takvimSelectedIndex].click();
+        }
+    } else if (e.key === 'Escape') {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        takvimSelectedIndex = -1;
+    }
+});
+
+function takvimHastaEkle(hasta) {
+    if (seciliGun === null) return;
+    const anahtar = gunAnahtari(takvimYil, takvimAy, seciliGun);
+    const kayitlar = takvimKayitlariGetir();
+    if (!kayitlar[anahtar]) kayitlar[anahtar] = [];
+
+    if (kayitlar[anahtar].some(h => h.tc === hasta.tc)) {
+        takvimHastaAraInput.value = '';
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        takvimHastaAraInput.placeholder = 'Bu hasta zaten bu günde kayıtlı!';
+        setTimeout(() => { takvimHastaAraInput.placeholder = 'Hasta adı yazın...'; }, 2000);
+        return;
+    }
+
+    kayitlar[anahtar].push({
+        tc: hasta.tc,
+        adiSoyadi: hasta.adiSoyadi,
+        kogus: hasta.kogus
+    });
+    takvimKayitlariKaydet(kayitlar);
+
+    takvimHastaAraInput.value = '';
+    takvimOneriListesi.classList.remove('active');
+    takvimOneriListesi.innerHTML = '';
+    takvimSelectedIndex = -1;
+
+    takvimCiz();
+    gunDetayGoster();
+}
+
+oncekiAyBtn.addEventListener('click', () => {
+    takvimAy--;
+    if (takvimAy < 0) { takvimAy = 11; takvimYil--; }
+    seciliGun = null;
+    gunDetaySection.style.display = 'none';
+    takvimCiz();
+});
+
+sonrakiAyBtn.addEventListener('click', () => {
+    takvimAy++;
+    if (takvimAy > 11) { takvimAy = 0; takvimYil++; }
+    seciliGun = null;
+    gunDetaySection.style.display = 'none';
+    takvimCiz();
+});
+
+// Close calendar suggestion list on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.gun-detay-ekle')) {
+        takvimOneriListesi.classList.remove('active');
+        takvimOneriListesi.innerHTML = '';
+        takvimSelectedIndex = -1;
+    }
+});
+
+// Initial calendar render
+takvimCiz();
