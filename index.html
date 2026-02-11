@@ -44,19 +44,43 @@
         <div id="muayeneTab" class="tab-content">
 
         <section class="card xml-upload-section">
-            <h2>XML Dosyası Yükle</h2>
+            <h2>XML/JSON Dosyası Yükle</h2>
             <div class="upload-container">
                 <label for="xmlFileInput" class="upload-area" id="uploadArea" tabindex="0">
                     <span class="upload-icon">📁</span>
-                    <span class="upload-text">Tasnif XML dosyasını seçmek için tıklayın veya sürükleyip bırakın</span>
-                    <span class="upload-hint">Sadece .xml dosyaları kabul edilir</span>
+                    <span class="upload-text">Tasnif XML veya hastalar JSON dosyasını seçmek için tıklayın veya sürükleyip bırakın</span>
+                    <span class="upload-hint">XML ve JSON dosyaları kabul edilir</span>
                 </label>
-                <input type="file" id="xmlFileInput" accept=".xml" hidden>
+                <input type="file" id="xmlFileInput" accept=".xml,.json" hidden>
                 <p id="uploadStatus" class="upload-status"></p>
+                <div class="local-file-buttons">
+                    <button id="loadLocalXmlBtn" class="btn btn-light">Yerel tasnif.xml Yükle</button>
+                    <button id="loadLocalJsonBtn" class="btn btn-light">Yerel hastalar.json Yükle</button>
+                </div>
+                <details class="local-file-help">
+                    <summary>Yerel dosya erişimi için yardım</summary>
+                    <div class="help-content">
+                        <p><strong>Chrome'da yerel dosya erişimi:</strong></p>
+                        <ol>
+                            <li>Chrome'u kapatın</li>
+                            <li>Kısayolu sağ tıklayıp "Özellikler" seçin</li>
+                            <li>Hedef alanına şunu ekleyin: <code>--allow-file-access-from-files</code></li>
+                            <li>Örnek: <code>"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files</code></li>
+                            <li>Chrome'u bu kısayoldan başlatın</li>
+                        </ol>
+                        <p><strong>Alternatif:</strong> Python ile yerel sunucu başlatın:</p>
+                        <code>python -m http.server 8000</code>
+                        <p>Sonra <code>http://localhost:8000</code> adresini açın</p>
+                    </div>
+                </details>
             </div>
         </section>
 
         <section class="card muayene-section">
+            <div class="print-header" style="display:none;">
+                <h1>Revir Muayene Listesi</h1>
+                <div class="print-date" id="printDate"></div>
+            </div>
             <h2>Muayene Listesi Oluştur</h2>
             <div class="muayene-container">
                 <div class="search-wrapper">
@@ -69,6 +93,8 @@
                 <div class="muayene-actions">
                     <button id="listeTemizleBtn" class="btn btn-danger">Listeyi Temizle</button>
                     <button id="listeYazBtn" class="btn btn-primary">Muayene Listesi Yap</button>
+                    <button id="listeKaydetBtn" class="btn btn-success" style="display:none;">Kaydet</button>
+                    <button id="listeYazdirBtn" class="btn btn-secondary" style="display:none;">Yazdır</button>
                 </div>
                 <div id="gruplanmisListe" class="gruplanmis-liste"></div>
             </div>

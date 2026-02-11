@@ -42,6 +42,8 @@ const oneriListesi = document.getElementById('oneriListesi');
 const muayeneListesiDiv = document.getElementById('muayeneListesi');
 const listeTemizleBtn = document.getElementById('listeTemizleBtn');
 const listeYazBtn = document.getElementById('listeYazBtn');
+const listeKaydetBtn = document.getElementById('listeKaydetBtn');
+const listeYazdirBtn = document.getElementById('listeYazdirBtn');
 const gruplanmisListe = document.getElementById('gruplanmisListe');
 
 // Modal elements
@@ -132,6 +134,8 @@ uyariModal.addEventListener('click', (e) => {
 const xmlFileInput = document.getElementById('xmlFileInput');
 const uploadArea = document.getElementById('uploadArea');
 const uploadStatus = document.getElementById('uploadStatus');
+const loadLocalXmlBtn = document.getElementById('loadLocalXmlBtn');
+const loadLocalJsonBtn = document.getElementById('loadLocalJsonBtn');
 
 function parseXmlText(xmlText) {
     hastalar = [];
@@ -189,21 +193,45 @@ function parseXmlText(xmlText) {
     });
 }
 
+function parseJsonText(jsonText) {
+    hastalar = [];
+    const data = JSON.parse(jsonText);
+    if (!Array.isArray(data)) {
+        throw new Error('JSON dosyası bir dizi içermelidir');
+    }
+    hastalar = data;
+}
+
 function handleXmlFile(file) {
-    if (!file || !file.name.toLowerCase().endsWith('.xml')) {
-        uploadStatus.textContent = 'Lütfen geçerli bir XML dosyası seçin!';
+    if (!file) {
+        uploadStatus.textContent = 'Lütfen geçerli bir dosya seçin!';
         uploadStatus.className = 'upload-status error';
         return;
     }
+    
+    const fileName = file.name.toLowerCase();
+    const isXml = fileName.endsWith('.xml');
+    const isJson = fileName.endsWith('.json');
+    
+    if (!isXml && !isJson) {
+        uploadStatus.textContent = 'Lütfen geçerli bir XML veya JSON dosyası seçin!';
+        uploadStatus.className = 'upload-status error';
+        return;
+    }
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            parseXmlText(e.target.result);
+            if (isXml) {
+                parseXmlText(e.target.result);
+            } else {
+                parseJsonText(e.target.result);
+            }
             uploadStatus.textContent = `"${escapeHtml(file.name)}" yüklendi – ${hastalar.length} hasta bulundu.`;
             uploadStatus.className = 'upload-status success';
             uploadArea.classList.add('uploaded');
         } catch (err) {
-            uploadStatus.textContent = 'XML dosyası okunamadı: ' + err.message;
+            uploadStatus.textContent = 'Dosya okunamadı: ' + err.message;
             uploadStatus.className = 'upload-status error';
         }
     };
@@ -230,6 +258,41 @@ uploadArea.addEventListener('drop', (e) => {
     uploadArea.classList.remove('dragover');
     if (e.dataTransfer.files.length > 0) {
         handleXmlFile(e.dataTransfer.files[0]);
+    }
+});
+
+// Load local files
+loadLocalXmlBtn.addEventListener('click', async () => {
+    try {
+        const response = await fetch('tasnif.xml');
+        if (!response.ok) {
+            throw new Error('Dosya bulunamadı. Lütfen tasnif.xml dosyasının aynı klasörde olduğundan emin olun.');
+        }
+        const xmlText = await response.text();
+        parseXmlText(xmlText);
+        uploadStatus.textContent = `tasnif.xml yüklendi – ${hastalar.length} hasta bulundu.`;
+        uploadStatus.className = 'upload-status success';
+        uploadArea.classList.add('uploaded');
+    } catch (err) {
+        uploadStatus.textContent = 'Hata: ' + err.message;
+        uploadStatus.className = 'upload-status error';
+    }
+});
+
+loadLocalJsonBtn.addEventListener('click', async () => {
+    try {
+        const response = await fetch('hastalar.json');
+        if (!response.ok) {
+            throw new Error('Dosya bulunamadı. Lütfen hastalar.json dosyasının aynı klasörde olduğundan emin olun.');
+        }
+        const jsonText = await response.text();
+        parseJsonText(jsonText);
+        uploadStatus.textContent = `hastalar.json yüklendi – ${hastalar.length} hasta bulundu.`;
+        uploadStatus.className = 'upload-status success';
+        uploadArea.classList.add('uploaded');
+    } catch (err) {
+        uploadStatus.textContent = 'Hata: ' + err.message;
+        uploadStatus.className = 'upload-status error';
     }
 });
 
@@ -373,6 +436,8 @@ listeTemizleBtn.addEventListener('click', () => {
     muayeneListesi = [];
     renderMuayeneListesi();
     gruplanmisListe.innerHTML = '';
+    listeKaydetBtn.style.display = 'none';
+    listeYazdirBtn.style.display = 'none';
 });
 
 listeYazBtn.addEventListener('click', () => {
@@ -410,6 +475,70 @@ listeYazBtn.addEventListener('click', () => {
         html += '</tbody></table></div>';
     });
     gruplanmisListe.innerHTML = html;
+    
+    // Show save and print buttons
+    listeKaydetBtn.style.display = 'inline-block';
+    listeYazdirBtn.style.display = 'inline-block';
+});
+
+// Save examination list
+listeKaydetBtn.addEventListener('click', () => {
+    if (muayeneListesi.length === 0) return;
+    
+    const bugun = new Date();
+    const tarih = bugun.toLocaleDateString('tr-TR');
+    const saat = bugun.toLocaleTimeString('tr-TR');
+    
+    // Create CSV content
+    let csvContent = '\uFEFF'; // UTF-8 BOM for Excel
+    csvContent += `Revir Muayene Listesi - ${tarih} ${saat}\n\n`;
+    
+    const grouped = {};
+    muayeneListesi.forEach(h => {
+        if (!grouped[h.kogus]) grouped[h.kogus] = [];
+        grouped[h.kogus].push(h);
+    });
+    
+    const sortedWards = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'tr'));
+    let siraNo = 1;
+    
+    sortedWards.forEach(ward => {
+        csvContent += `\n${ward}\n`;
+        csvContent += '#,Adı Soyadı,TC Kimlik,Baba Adı,Doğum Yeri\n';
+        grouped[ward].forEach(h => {
+            csvContent += `${siraNo++},"${h.adiSoyadi}","${h.tc}","${h.babaAdi}","${h.dogumYeriTarihi}"\n`;
+        });
+    });
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `muayene-listesi-${bugun.toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+// Print examination list
+listeYazdirBtn.addEventListener('click', () => {
+    if (muayeneListesi.length === 0) return;
+    
+    // Set print date
+    const bugun = new Date();
+    const tarih = bugun.toLocaleDateString('tr-TR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    const saat = bugun.toLocaleTimeString('tr-TR');
+    document.getElementById('printDate').textContent = `${tarih} - ${saat}`;
+    
+    // Trigger print
+    window.print();
 });
 
 document.addEventListener('click', (e) => {
