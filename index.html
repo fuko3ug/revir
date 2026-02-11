@@ -28,6 +28,7 @@
         <nav class="tab-nav">
             <button class="tab-btn active" data-tab="muayene">Muayene Listesi</button>
             <button class="tab-btn" data-tab="takvim">Takvim</button>
+            <button class="tab-btn" data-tab="sorgula">Sorgula</button>
         </nav>
 
         <div id="takvimTab" class="tab-content" style="display:none;">
@@ -59,6 +60,26 @@
                 <textarea id="bulkImportText" class="bulk-import-textarea" placeholder="Hasta listesini buraya yapıştırın..."></textarea>
                 <button id="bulkImportBtn" class="btn btn-success">Listeyi İçe Aktar</button>
                 <div id="bulkImportStatus" class="import-status"></div>
+            </section>
+        </div>
+
+        <div id="sorgulaTab" class="tab-content" style="display:none;">
+            <section class="card">
+                <h2>Kişi Sorgula</h2>
+                <p class="help-text">Kişinin adını yazarak muayeneye çıktığı tarihleri görüntüleyin.</p>
+                <div class="search-wrapper">
+                    <input type="text" id="sorgulaHastaAraInput" class="input-field" placeholder="Hasta adı yazın..." autocomplete="off">
+                    <div id="sorgulaOneriListesi" class="oneri-listesi"></div>
+                </div>
+                <div id="sorgulaKisiSonuc" class="sorgula-sonuc"></div>
+            </section>
+            <section class="card" style="margin-top:20px;">
+                <h2>Koğuş Sorgula</h2>
+                <p class="help-text">Koğuş seçerek son 1 ve 2 haftada kim kaç kere muayeneye çıkmış görüntüleyin.</p>
+                <select id="sorgulaKogusSelect" class="input-field">
+                    <option value="">-- Koğuş Seçin --</option>
+                </select>
+                <div id="sorgulaKogusSonuc" class="sorgula-sonuc"></div>
             </section>
         </div>
 
