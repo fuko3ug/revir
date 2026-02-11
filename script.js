@@ -575,8 +575,6 @@ const sonrakiAyBtn = document.getElementById('sonrakiAyBtn');
 const gunDetaySection = document.getElementById('gunDetaySection');
 const gunDetayBaslik = document.getElementById('gunDetayBaslik');
 const gunMuayeneListesi = document.getElementById('gunMuayeneListesi');
-const takvimHastaAraInput = document.getElementById('takvimHastaAraInput');
-const takvimOneriListesi = document.getElementById('takvimOneriListesi');
 
 function takvimKayitlariGetir() {
     try {
@@ -596,7 +594,7 @@ function gunAnahtari(yil, ay, gun) {
 
 function takvimCiz() {
     takvimBaslik.textContent = `${ayIsimleri[takvimAy]} ${takvimYil}`;
-    const kayitlar = takvimKayitlariGetir();
+    const muayeneKayitlari = muayeneKayitlariGetir();
     const bugun = new Date();
 
     let html = '';
@@ -617,7 +615,13 @@ function takvimCiz() {
 
     for (let gun = 1; gun <= aydakiGunSayisi; gun++) {
         const anahtar = gunAnahtari(takvimYil, takvimAy, gun);
-        const gunKayitlari = kayitlar[anahtar] || [];
+        // Count records for this day from muayeneKayitlari
+        const gunKayitlari = muayeneKayitlari.filter(k => {
+            const kayitTarih = new Date(k.tarih);
+            return kayitTarih.getFullYear() === takvimYil &&
+                   kayitTarih.getMonth() === takvimAy &&
+                   kayitTarih.getDate() === gun;
+        });
         const bugunMu = bugun.getFullYear() === takvimYil && bugun.getMonth() === takvimAy && bugun.getDate() === gun;
         const seciliMi = seciliGun === gun;
 
@@ -650,11 +654,16 @@ function gunDetayGoster() {
         return;
     }
     gunDetaySection.style.display = 'block';
-    const anahtar = gunAnahtari(takvimYil, takvimAy, seciliGun);
     gunDetayBaslik.textContent = `${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil} - Muayene Listesi`;
 
-    const kayitlar = takvimKayitlariGetir();
-    const gunKayitlari = kayitlar[anahtar] || [];
+    const muayeneKayitlari = muayeneKayitlariGetir();
+    // Get records for this specific day
+    const gunKayitlari = muayeneKayitlari.filter(k => {
+        const kayitTarih = new Date(k.tarih);
+        return kayitTarih.getFullYear() === takvimYil &&
+               kayitTarih.getMonth() === takvimAy &&
+               kayitTarih.getDate() === seciliGun;
+    });
 
     if (gunKayitlari.length === 0) {
         gunMuayeneListesi.innerHTML = '<p class="empty-message">Bu gün için kayıt yok.</p>';
@@ -663,7 +672,7 @@ function gunDetayGoster() {
 
     let html = `<table>
         <thead><tr>
-            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th></th>
+            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th>
         </tr></thead><tbody>`;
     gunKayitlari.forEach((h, i) => {
         html += `<tr>
@@ -671,116 +680,10 @@ function gunDetayGoster() {
             <td>${escapeHtml(h.adiSoyadi)}</td>
             <td>${escapeHtml(h.tc)}</td>
             <td>${escapeHtml(h.kogus)}</td>
-            <td><button class="sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
         </tr>`;
     });
     html += '</tbody></table>';
     gunMuayeneListesi.innerHTML = html;
-
-    gunMuayeneListesi.querySelectorAll('.sil-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const kayitlar = takvimKayitlariGetir();
-            kayitlar[anahtar] = (kayitlar[anahtar] || []).filter(h => h.tc !== btn.dataset.tc);
-            if (kayitlar[anahtar].length === 0) delete kayitlar[anahtar];
-            takvimKayitlariKaydet(kayitlar);
-            takvimCiz();
-            gunDetayGoster();
-        });
-    });
-}
-
-// Calendar patient search
-let takvimSelectedIndex = -1;
-
-takvimHastaAraInput.addEventListener('input', () => {
-    const query = turkishLowerCase(takvimHastaAraInput.value.trim());
-    takvimSelectedIndex = -1;
-
-    if (query.length < 2) {
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        return;
-    }
-
-    const results = hastalar.filter(h =>
-        turkishLowerCase(h.adiSoyadi).includes(query)
-    ).slice(0, 20);
-
-    if (results.length === 0) {
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        return;
-    }
-
-    takvimOneriListesi.innerHTML = results.map((h, i) =>
-        `<div class="oneri-item" data-index="${i}">
-            <strong>${escapeHtml(h.adiSoyadi)}</strong>
-            <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)}</div>
-        </div>`
-    ).join('');
-    takvimOneriListesi.classList.add('active');
-
-    takvimOneriListesi.querySelectorAll('.oneri-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const idx = parseInt(item.dataset.index);
-            takvimHastaEkle(results[idx]);
-        });
-    });
-});
-
-takvimHastaAraInput.addEventListener('keydown', (e) => {
-    const items = takvimOneriListesi.querySelectorAll('.oneri-item');
-    if (!items.length) return;
-
-    if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        takvimSelectedIndex = Math.min(takvimSelectedIndex + 1, items.length - 1);
-        updateSelection(items);
-    } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        takvimSelectedIndex = Math.max(takvimSelectedIndex - 1, 0);
-        updateSelection(items);
-    } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (takvimSelectedIndex >= 0 && takvimSelectedIndex < items.length) {
-            items[takvimSelectedIndex].click();
-        }
-    } else if (e.key === 'Escape') {
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        takvimSelectedIndex = -1;
-    }
-});
-
-function takvimHastaEkle(hasta) {
-    if (seciliGun === null) return;
-    const anahtar = gunAnahtari(takvimYil, takvimAy, seciliGun);
-    const kayitlar = takvimKayitlariGetir();
-    if (!kayitlar[anahtar]) kayitlar[anahtar] = [];
-
-    if (kayitlar[anahtar].some(h => h.tc === hasta.tc)) {
-        takvimHastaAraInput.value = '';
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        takvimHastaAraInput.placeholder = 'Bu hasta zaten bu günde kayıtlı!';
-        setTimeout(() => { takvimHastaAraInput.placeholder = 'Hasta adı yazın...'; }, 2000);
-        return;
-    }
-
-    kayitlar[anahtar].push({
-        tc: hasta.tc,
-        adiSoyadi: hasta.adiSoyadi,
-        kogus: hasta.kogus
-    });
-    takvimKayitlariKaydet(kayitlar);
-
-    takvimHastaAraInput.value = '';
-    takvimOneriListesi.classList.remove('active');
-    takvimOneriListesi.innerHTML = '';
-    takvimSelectedIndex = -1;
-
-    takvimCiz();
-    gunDetayGoster();
 }
 
 oncekiAyBtn.addEventListener('click', () => {
@@ -797,15 +700,6 @@ sonrakiAyBtn.addEventListener('click', () => {
     seciliGun = null;
     gunDetaySection.style.display = 'none';
     takvimCiz();
-});
-
-// Close calendar suggestion list on outside click
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.gun-detay-ekle')) {
-        takvimOneriListesi.classList.remove('active');
-        takvimOneriListesi.innerHTML = '';
-        takvimSelectedIndex = -1;
-    }
 });
 
 // Initial calendar render
