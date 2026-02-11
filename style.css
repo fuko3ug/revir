@@ -177,7 +177,6 @@ header h1 {
 }
 
 .card:hover {
-    transform: translateY(-5px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
@@ -477,6 +476,35 @@ footer {
 
 .muayene-listesi .sil-btn:hover {
     background: #c0392b;
+}
+
+/* 2-column layout for examination list */
+.muayene-listesi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.muayene-listesi-col table {
+    font-size: 0.8rem;
+}
+
+.muayene-listesi-col th,
+.muayene-listesi-col td {
+    padding: 4px 6px;
+}
+
+/* Examination count badge in search suggestions */
+.oneri-badge {
+    display: inline-block;
+    background: var(--success-color);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 .muayene-actions {
@@ -782,6 +810,9 @@ body.dark-theme .help-content code {
 
     .gruplanmis-liste {
         margin-top: 5px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
     }
 
     .gruplanmis-liste .kogus-group {
@@ -915,6 +946,10 @@ body.dark-theme .help-content code {
         right: 10px;
     }
 
+    .muayene-listesi-grid {
+        grid-template-columns: 1fr;
+    }
+
     .takvim-gun {
         padding: 8px 2px;
         font-size: 0.8rem;
@@ -1003,6 +1038,65 @@ body.dark-theme .help-content code {
     text-align: right;
 }
 
+/* Sorgula (Query) tab */
+.sorgula-sonuc {
+    margin-top: 15px;
+}
+
+.sorgula-sonuc table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.sorgula-sonuc th,
+.sorgula-sonuc td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sorgula-sonuc th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.sorgula-sonuc .sorgula-baslik {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+    font-size: 1.05rem;
+}
+
+.sorgula-sonuc .sorgula-ozet {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.sorgula-sonuc .ozet-kutu {
+    background: var(--card-bg);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 140px;
+}
+
+.sorgula-sonuc .ozet-kutu .ozet-sayi {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.sorgula-sonuc .ozet-kutu .ozet-etiket {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
 .gun-hasta-sil-btn {
     padding: 4px 12px;
     background-color: var(--danger-color);
@@ -1019,40 +1113,4 @@ body.dark-theme .help-content code {
     opacity: 0.85;
 }
 
-/* Collapsible section styles */
-.collapsible-header {
-    cursor: pointer;
-    user-select: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    margin: 0 -15px 15px -15px;
-    background-color: var(--card-bg);
-    border-bottom: 2px solid var(--border-color);
-    transition: background-color 0.3s ease;
-}
 
-.collapsible-header:hover {
-    background-color: var(--border-color);
-}
-
-.collapse-icon {
-    transition: transform 0.3s ease;
-    font-size: 0.8em;
-    color: var(--text-color);
-}
-
-.collapsible-header.collapsed .collapse-icon {
-    transform: rotate(-90deg);
-}
-
-.muayene-container {
-    max-height: 2000px;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-
-.muayene-container.collapsed {
-    max-height: 0;
-}

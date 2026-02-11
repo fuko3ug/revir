@@ -35,6 +35,8 @@ async function loadBothFiles() {
             mainApp.style.display = 'block';
             // Load today's examination list after app is displayed
             loadTodaysExaminationList();
+            // Populate ward list for Sorgula tab
+            sorgulaKogusListesiDoldur();
         }, 800);
         
         return true;
@@ -98,17 +100,6 @@ let hastalar = [];
 let muayeneListesi = [];
 let selectedIndex = -1;
 let bekleyenHasta = null; // Hasta waiting for modal confirmation
-
-// Collapsible section for Muayene Listesi Oluştur
-const muayeneOlusturHeader = document.getElementById('muayeneOlusturHeader');
-const muayeneOlusturContainer = document.getElementById('muayeneOlusturContainer');
-
-if (muayeneOlusturHeader && muayeneOlusturContainer) {
-    muayeneOlusturHeader.addEventListener('click', () => {
-        muayeneOlusturHeader.classList.toggle('collapsed');
-        muayeneOlusturContainer.classList.toggle('collapsed');
-    });
-}
 
 const hastaAraInput = document.getElementById('hastaAraInput');
 const oneriListesi = document.getElementById('oneriListesi');
@@ -264,6 +255,7 @@ function modalGoster(hasta, mevcutKayit) {
     const kayitTarih = new Date(mevcutKayit.tarih).toLocaleDateString('tr-TR');
     uyariMesaj.textContent = `${hasta.adiSoyadi} isimli hasta ${kayitTarih} tarihinde muayene olmuş. Son 12 gün içinde muayene hakkı kullanılmış.`;
     uyariModal.classList.add('active');
+    yineDeEkleBtn.focus();
 }
 
 function modalKapat() {
@@ -287,6 +279,13 @@ eklemeBtn.addEventListener('click', () => {
 
 uyariModal.addEventListener('click', (e) => {
     if (e.target === uyariModal) {
+        modalKapat();
+        hastaAraInput.focus();
+    }
+});
+
+uyariModal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
         modalKapat();
         hastaAraInput.focus();
     }
@@ -400,6 +399,7 @@ function handleXmlFile(file) {
             uploadStatus.textContent = `"${escapeHtml(file.name)}" yüklendi – ${hastalar.length} hasta bulundu.`;
             uploadStatus.className = 'upload-status success';
             uploadArea.classList.add('uploaded');
+            sorgulaKogusListesiDoldur();
         } catch (err) {
             uploadStatus.textContent = 'Dosya okunamadı: ' + err.message;
             uploadStatus.className = 'upload-status error';
@@ -458,6 +458,7 @@ loadBothFilesBtn.addEventListener('click', async () => {
         uploadStatus.textContent = `Her iki dosya yüklendi – ${hastalar.length} hasta bulundu.`;
         uploadStatus.className = 'upload-status success';
         uploadArea.classList.add('uploaded');
+        sorgulaKogusListesiDoldur();
     } catch (err) {
         uploadStatus.textContent = 'Hata: ' + err.message;
         uploadStatus.className = 'upload-status error';
@@ -472,6 +473,32 @@ function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Cached examination frequency counts
+let _muayeneSayilariCache = null;
+let _muayeneSayilariCacheKey = null;
+
+function getMuayeneSayilari() {
+    const kayitlar = muayeneKayitlariGetir();
+    const cacheKey = JSON.stringify(kayitlar);
+    if (_muayeneSayilariCacheKey === cacheKey) return _muayeneSayilariCache;
+    const sayilar = {};
+    kayitlar.forEach(k => {
+        sayilar[k.tc] = (sayilar[k.tc] || 0) + 1;
+    });
+    _muayeneSayilariCache = sayilar;
+    _muayeneSayilariCacheKey = cacheKey;
+    return sayilar;
+}
+
+function siralaVeFiltrele(query, limit) {
+    const filtered = hastalar.filter(h =>
+        turkishLowerCase(h.adiSoyadi).includes(query)
+    );
+    const muayeneSayilari = getMuayeneSayilari();
+    filtered.sort((a, b) => (muayeneSayilari[b.tc] || 0) - (muayeneSayilari[a.tc] || 0));
+    return { results: filtered.slice(0, limit), muayeneSayilari };
+}
+
 hastaAraInput.addEventListener('input', () => {
     const query = turkishLowerCase(hastaAraInput.value.trim());
     selectedIndex = -1;
@@ -483,9 +510,7 @@ hastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    const results = hastalar.filter(h =>
-        turkishLowerCase(h.adiSoyadi).includes(query)
-    ).slice(0, 20);
+    const { results, muayeneSayilari } = siralaVeFiltrele(query, 20);
 
     if (results.length === 0) {
         oneriListesi.classList.remove('active');
@@ -493,12 +518,14 @@ hastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    oneriListesi.innerHTML = results.map((h, i) =>
-        `<div class="oneri-item" data-index="${i}">
-            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+    oneriListesi.innerHTML = results.map((h, i) => {
+        const sayi = muayeneSayilari[h.tc] || 0;
+        const badge = sayi > 0 ? ` <span class="oneri-badge">${sayi}</span>` : '';
+        return `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>${badge}
             <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)} | Baba: ${escapeHtml(h.babaAdi)}</div>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
     oneriListesi.classList.add('active');
 
     oneriListesi.querySelectorAll('.oneri-item').forEach(item => {
@@ -573,22 +600,34 @@ function renderMuayeneListesi() {
         muayeneListesiDiv.innerHTML = '<p class="empty-message">Henüz listeye hasta eklenmedi.</p>';
         return;
     }
-    let html = `<table>
-        <thead><tr>
-            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Baba Adı</th><th>Doğum Yeri</th><th>Koğuş</th><th></th>
-        </tr></thead><tbody>`;
-    muayeneListesi.forEach((h, i) => {
-        html += `<tr>
-            <td>${i + 1}</td>
-            <td>${escapeHtml(h.adiSoyadi)}</td>
-            <td>${escapeHtml(h.tc)}</td>
-            <td>${escapeHtml(h.babaAdi)}</td>
-            <td>${escapeHtml(h.dogumYeriTarihi)}</td>
-            <td>${escapeHtml(h.kogus)}</td>
-            <td><button class="sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
-        </tr>`;
-    });
-    html += '</tbody></table>';
+    // Split into two columns
+    const mid = Math.ceil(muayeneListesi.length / 2);
+    const col1 = muayeneListesi.slice(0, mid);
+    const col2 = muayeneListesi.slice(mid);
+
+    function buildColumn(list, startIndex) {
+        let h = `<table>
+            <thead><tr>
+                <th>#</th><th>Adı Soyadı</th><th>Koğuş</th><th></th>
+            </tr></thead><tbody>`;
+        list.forEach((p, i) => {
+            h += `<tr>
+                <td>${startIndex + i + 1}</td>
+                <td>${escapeHtml(p.adiSoyadi)}</td>
+                <td>${escapeHtml(p.kogus)}</td>
+                <td><button class="sil-btn" data-tc="${escapeHtml(p.tc)}">Sil</button></td>
+            </tr>`;
+        });
+        h += '</tbody></table>';
+        return h;
+    }
+
+    let html = '<div class="muayene-listesi-grid">';
+    html += '<div class="muayene-listesi-col">' + buildColumn(col1, 0) + '</div>';
+    if (col2.length > 0) {
+        html += '<div class="muayene-listesi-col">' + buildColumn(col2, mid) + '</div>';
+    }
+    html += '</div>';
     muayeneListesiDiv.innerHTML = html;
 
     muayeneListesiDiv.querySelectorAll('.sil-btn').forEach(btn => {
@@ -601,6 +640,8 @@ function renderMuayeneListesi() {
 }
 
 listeTemizleBtn.addEventListener('click', () => {
+    if (muayeneListesi.length === 0) return;
+    if (!confirm('Listeyi temizlemek istediğinizden emin misiniz?')) return;
     muayeneListesi = [];
     renderMuayeneListesi();
     gruplanmisListe.innerHTML = '';
@@ -902,6 +943,7 @@ function gunDetayGoster() {
     // Add event listeners for individual delete buttons
     gunMuayeneListesi.querySelectorAll('.gun-hasta-sil-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (!confirm('Bu hastayı listeden silmek istediğinizden emin misiniz?')) return;
             const tc = btn.dataset.tc;
             gundenHastaSil(tc);
         });
@@ -985,9 +1027,7 @@ takvimHastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    const results = hastalar.filter(h =>
-        turkishLowerCase(h.adiSoyadi).includes(query)
-    ).slice(0, 20);
+    const { results, muayeneSayilari } = siralaVeFiltrele(query, 20);
 
     if (results.length === 0) {
         takvimOneriListesi.classList.remove('active');
@@ -995,12 +1035,14 @@ takvimHastaAraInput.addEventListener('input', () => {
         return;
     }
 
-    takvimOneriListesi.innerHTML = results.map((h, i) =>
-        `<div class="oneri-item" data-index="${i}">
-            <strong>${escapeHtml(h.adiSoyadi)}</strong>
+    takvimOneriListesi.innerHTML = results.map((h, i) => {
+        const sayi = muayeneSayilari[h.tc] || 0;
+        const badge = sayi > 0 ? ` <span class="oneri-badge">${sayi}</span>` : '';
+        return `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>${badge}
             <div class="oneri-detay">${escapeHtml(h.kogus || 'Koğuş bilgisi yok')} | TC: ${escapeHtml(h.tc)}</div>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
     takvimOneriListesi.classList.add('active');
 
     takvimOneriListesi.querySelectorAll('.oneri-item').forEach(item => {
@@ -1271,3 +1313,187 @@ function parseBulkImportText(text) {
     
     return results;
 }
+
+// ==================== Sorgula (Query) Tab ====================
+const sorgulaHastaAraInput = document.getElementById('sorgulaHastaAraInput');
+const sorgulaOneriListesi = document.getElementById('sorgulaOneriListesi');
+const sorgulaKisiSonuc = document.getElementById('sorgulaKisiSonuc');
+const sorgulaKogusSelect = document.getElementById('sorgulaKogusSelect');
+const sorgulaKogusSonuc = document.getElementById('sorgulaKogusSonuc');
+let sorgulaSelectedIndex = -1;
+
+function sorgulaKogusListesiDoldur() {
+    const kogusSet = new Set();
+    hastalar.forEach(h => {
+        if (h.kogus) kogusSet.add(h.kogus);
+    });
+    const sorted = Array.from(kogusSet).sort((a, b) => a.localeCompare(b, 'tr'));
+    let html = '<option value="">-- Koğuş Seçin --</option>';
+    sorted.forEach(k => {
+        html += `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`;
+    });
+    sorgulaKogusSelect.innerHTML = html;
+}
+
+// Patient search in Sorgula tab
+sorgulaHastaAraInput.addEventListener('input', () => {
+    const query = turkishLowerCase(sorgulaHastaAraInput.value.trim());
+    sorgulaSelectedIndex = -1;
+
+    if (query.length < 2) {
+        sorgulaOneriListesi.classList.remove('active');
+        sorgulaOneriListesi.innerHTML = '';
+        return;
+    }
+
+    const { results, muayeneSayilari } = siralaVeFiltrele(query, 20);
+
+    if (results.length === 0) {
+        sorgulaOneriListesi.classList.remove('active');
+        sorgulaOneriListesi.innerHTML = '';
+        return;
+    }
+
+    sorgulaOneriListesi.innerHTML = results.map((h, i) => {
+        const sayi = muayeneSayilari[h.tc] || 0;
+        const badge = sayi > 0 ? ` <span class="oneri-badge">${sayi}</span>` : '';
+        return `<div class="oneri-item" data-index="${i}">
+            <strong>${escapeHtml(h.adiSoyadi)}</strong>${badge}
+            <div class="oneri-detay">${escapeHtml(h.kogus)} | TC: ${escapeHtml(h.tc)}</div>
+        </div>`;
+    }).join('');
+    sorgulaOneriListesi.classList.add('active');
+
+    sorgulaOneriListesi.querySelectorAll('.oneri-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const idx = parseInt(item.dataset.index);
+            sorgulaKisiGoster(results[idx]);
+            sorgulaOneriListesi.classList.remove('active');
+            sorgulaOneriListesi.innerHTML = '';
+            sorgulaHastaAraInput.value = results[idx].adiSoyadi;
+        });
+    });
+});
+
+sorgulaHastaAraInput.addEventListener('keydown', (e) => {
+    const items = sorgulaOneriListesi.querySelectorAll('.oneri-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        sorgulaSelectedIndex = Math.min(sorgulaSelectedIndex + 1, items.length - 1);
+        items.forEach((item, i) => item.classList.toggle('selected', i === sorgulaSelectedIndex));
+        if (sorgulaSelectedIndex >= 0) items[sorgulaSelectedIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        sorgulaSelectedIndex = Math.max(sorgulaSelectedIndex - 1, 0);
+        items.forEach((item, i) => item.classList.toggle('selected', i === sorgulaSelectedIndex));
+        if (sorgulaSelectedIndex >= 0) items[sorgulaSelectedIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (sorgulaSelectedIndex >= 0 && sorgulaSelectedIndex < items.length) items[sorgulaSelectedIndex].click();
+    } else if (e.key === 'Escape') {
+        sorgulaOneriListesi.classList.remove('active');
+        sorgulaOneriListesi.innerHTML = '';
+        sorgulaSelectedIndex = -1;
+    }
+});
+
+function sorgulaKisiGoster(hasta) {
+    const kayitlar = muayeneKayitlariGetir();
+    const kisiKayitlari = kayitlar.filter(k => k.tc === hasta.tc);
+
+    if (kisiKayitlari.length === 0) {
+        sorgulaKisiSonuc.innerHTML = `<p><strong>${escapeHtml(hasta.adiSoyadi)}</strong> – Koğuş: ${escapeHtml(hasta.kogus)}</p><p style="opacity:0.6;font-style:italic;">Muayene kaydı bulunamadı.</p>`;
+        return;
+    }
+
+    // Sort by date descending (parse once for efficiency)
+    kisiKayitlari.forEach(k => { k._ts = new Date(k.tarih).getTime(); });
+    kisiKayitlari.sort((a, b) => b._ts - a._ts);
+
+    let html = `<p class="sorgula-baslik">${escapeHtml(hasta.adiSoyadi)} – Koğuş: ${escapeHtml(hasta.kogus)}</p>`;
+    html += `<p>Toplam muayene sayısı: <strong>${kisiKayitlari.length}</strong></p>`;
+    html += `<table><thead><tr><th>#</th><th>Tarih</th></tr></thead><tbody>`;
+    kisiKayitlari.forEach((k, i) => {
+        const tarih = new Date(k.tarih);
+        html += `<tr><td>${i + 1}</td><td>${tarih.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    sorgulaKisiSonuc.innerHTML = html;
+}
+
+// Ward query
+sorgulaKogusSelect.addEventListener('change', () => {
+    const seciliKogus = sorgulaKogusSelect.value;
+    if (!seciliKogus) {
+        sorgulaKogusSonuc.innerHTML = '';
+        return;
+    }
+
+    const kayitlar = muayeneKayitlariGetir();
+    const simdi = new Date();
+    const birHaftaOnce = new Date(simdi.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const ikiHaftaOnce = new Date(simdi.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Filter records for this ward and classify by period in single pass
+    const birHaftaSayilar = {};
+    const ikiHaftaSayilar = {};
+    let sonBirHaftaTopam = 0;
+    let sonIkiHaftaToplam = 0;
+
+    kayitlar.forEach(k => {
+        if (k.kogus !== seciliKogus) return;
+        const t = new Date(k.tarih);
+        if (t >= ikiHaftaOnce) {
+            if (!ikiHaftaSayilar[k.tc]) ikiHaftaSayilar[k.tc] = { adiSoyadi: k.adiSoyadi, tc: k.tc, sayi: 0 };
+            ikiHaftaSayilar[k.tc].sayi++;
+            sonIkiHaftaToplam++;
+            if (t >= birHaftaOnce) {
+                if (!birHaftaSayilar[k.tc]) birHaftaSayilar[k.tc] = { adiSoyadi: k.adiSoyadi, tc: k.tc, sayi: 0 };
+                birHaftaSayilar[k.tc].sayi++;
+                sonBirHaftaTopam++;
+            }
+        }
+    });
+
+    const birHaftaListe = Object.values(birHaftaSayilar).sort((a, b) => b.sayi - a.sayi);
+    const ikiHaftaListe = Object.values(ikiHaftaSayilar).sort((a, b) => b.sayi - a.sayi);
+
+    // Unique people counts
+    const birHaftaKisiSayisi = birHaftaListe.length;
+    const ikiHaftaKisiSayisi = ikiHaftaListe.length;
+
+    let html = `<p class="sorgula-baslik">${escapeHtml(seciliKogus)}</p>`;
+    html += `<div class="sorgula-ozet">`;
+    html += `<div class="ozet-kutu"><div class="ozet-sayi">${birHaftaKisiSayisi}</div><div class="ozet-etiket">Son 1 Hafta<br>Kişi Sayısı</div></div>`;
+    html += `<div class="ozet-kutu"><div class="ozet-sayi">${sonBirHaftaTopam}</div><div class="ozet-etiket">Son 1 Hafta<br>Toplam Muayene</div></div>`;
+    html += `<div class="ozet-kutu"><div class="ozet-sayi">${ikiHaftaKisiSayisi}</div><div class="ozet-etiket">Son 2 Hafta<br>Kişi Sayısı</div></div>`;
+    html += `<div class="ozet-kutu"><div class="ozet-sayi">${sonIkiHaftaToplam}</div><div class="ozet-etiket">Son 2 Hafta<br>Toplam Muayene</div></div>`;
+    html += `</div>`;
+
+    // Last 1 week table
+    html += `<h3 style="margin-top:15px;color:var(--primary-color);">Son 1 Hafta (${birHaftaOnce.toLocaleDateString('tr-TR')} – ${simdi.toLocaleDateString('tr-TR')})</h3>`;
+    if (birHaftaListe.length === 0) {
+        html += '<p style="opacity:0.6;font-style:italic;">Bu dönemde kayıt yok.</p>';
+    } else {
+        html += `<table><thead><tr><th>#</th><th>Adı Soyadı</th><th>Muayene Sayısı</th></tr></thead><tbody>`;
+        birHaftaListe.forEach((k, i) => {
+            html += `<tr><td>${i + 1}</td><td>${escapeHtml(k.adiSoyadi)}</td><td>${k.sayi}</td></tr>`;
+        });
+        html += '</tbody></table>';
+    }
+
+    // Last 2 weeks table
+    html += `<h3 style="margin-top:15px;color:var(--primary-color);">Son 2 Hafta (${ikiHaftaOnce.toLocaleDateString('tr-TR')} – ${simdi.toLocaleDateString('tr-TR')})</h3>`;
+    if (ikiHaftaListe.length === 0) {
+        html += '<p style="opacity:0.6;font-style:italic;">Bu dönemde kayıt yok.</p>';
+    } else {
+        html += `<table><thead><tr><th>#</th><th>Adı Soyadı</th><th>Muayene Sayısı</th></tr></thead><tbody>`;
+        ikiHaftaListe.forEach((k, i) => {
+            html += `<tr><td>${i + 1}</td><td>${escapeHtml(k.adiSoyadi)}</td><td>${k.sayi}</td></tr>`;
+        });
+        html += '</tbody></table>';
+    }
+
+    sorgulaKogusSonuc.innerHTML = html;
+});
