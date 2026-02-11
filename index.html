@@ -10,49 +10,38 @@
     <div class="container">
         <header>
             <h1>Revir Uygulaması</h1>
-            <p class="subtitle">Basit ve Modern HTML Uygulaması</p>
+            <button id="themeToggleBtn" class="theme-toggle-btn" title="Tema Değiştir">🌙</button>
         </header>
 
-        <main>
-            <section class="card">
-                <h2>Hoş Geldiniz</h2>
-                <p>Bu, modern bir HTML5 uygulamasıdır. Aşağıdaki özellikleri içerir:</p>
-                <ul>
-                    <li>Responsive tasarım</li>
-                    <li>Modern CSS stili</li>
-                    <li>İnteraktif JavaScript özellikleri</li>
-                </ul>
-            </section>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="muayene">Muayene Listesi</button>
+            <button class="tab-btn" data-tab="takvim">Takvim</button>
+        </nav>
 
+        <div id="takvimTab" class="tab-content" style="display:none;">
             <section class="card">
-                <h2>Sayaç Uygulaması</h2>
-                <div class="counter-container">
-                    <p>Sayaç: <span id="counter" class="counter-value">0</span></p>
-                    <div class="button-group">
-                        <button id="decrementBtn" class="btn btn-danger">-</button>
-                        <button id="resetBtn" class="btn btn-secondary">Sıfırla</button>
-                        <button id="incrementBtn" class="btn btn-success">+</button>
+                <div class="takvim-header">
+                    <button id="oncekiAyBtn" class="btn btn-secondary">◀</button>
+                    <h2 id="takvimBaslik"></h2>
+                    <button id="sonrakiAyBtn" class="btn btn-secondary">▶</button>
+                </div>
+                <div id="takvimGrid" class="takvim-grid"></div>
+            </section>
+            <section id="gunDetaySection" class="card gun-detay-section" style="display:none;">
+                <h3 id="gunDetayBaslik"></h3>
+                <div id="gunMuayeneListesi" class="muayene-listesi">
+                    <p class="empty-message">Bu gün için kayıt yok.</p>
+                </div>
+                <div class="gun-detay-ekle">
+                    <div class="search-wrapper">
+                        <input type="text" id="takvimHastaAraInput" class="input-field" placeholder="Hasta adı yazın..." autocomplete="off">
+                        <div id="takvimOneriListesi" class="oneri-listesi"></div>
                     </div>
                 </div>
             </section>
+        </div>
 
-            <section class="card">
-                <h2>Mesaj Formu</h2>
-                <div class="form-container">
-                    <input type="text" id="nameInput" class="input-field" placeholder="Adınızı girin">
-                    <button id="greetBtn" class="btn btn-primary">Selam Ver</button>
-                    <p id="greetingMessage" class="greeting-message"></p>
-                </div>
-            </section>
-
-            <section class="card">
-                <h2>Tema Değiştirici</h2>
-                <div class="theme-switcher">
-                    <button id="lightThemeBtn" class="btn btn-light">Açık Tema</button>
-                    <button id="darkThemeBtn" class="btn btn-dark">Koyu Tema</button>
-                </div>
-            </section>
-        </main>
+        <div id="muayeneTab" class="tab-content">
 
         <section class="card xml-upload-section">
             <h2>XML Dosyası Yükle</h2>
@@ -84,6 +73,7 @@
                 <div id="gruplanmisListe" class="gruplanmis-liste"></div>
             </div>
         </section>
+        </div>
 
         <footer>
             <p>&copy; 2026 Revir. Tüm hakları saklıdır.</p>
