@@ -753,9 +753,13 @@ function gunDetayGoster() {
         return (a.kogus || '').localeCompare(b.kogus || '', 'tr');
     });
 
-    let html = `<table>
+    let html = `
+        <div class="gun-liste-actions">
+            <button id="gunListeTemizleBtn" class="btn btn-danger">Günün Listesini Sil</button>
+        </div>
+        <table>
         <thead><tr>
-            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th>
+            <th>#</th><th>Adı Soyadı</th><th>TC Kimlik</th><th>Koğuş</th><th></th>
         </tr></thead><tbody>`;
     gunKayitlari.forEach((h, i) => {
         html += `<tr>
@@ -763,10 +767,60 @@ function gunDetayGoster() {
             <td>${escapeHtml(h.adiSoyadi)}</td>
             <td>${escapeHtml(h.tc)}</td>
             <td>${escapeHtml(h.kogus)}</td>
+            <td><button class="gun-hasta-sil-btn" data-tc="${escapeHtml(h.tc)}">Sil</button></td>
         </tr>`;
     });
     html += '</tbody></table>';
     gunMuayeneListesi.innerHTML = html;
+    
+    // Add event listener for clear all button
+    const gunListeTemizleBtn = document.getElementById('gunListeTemizleBtn');
+    if (gunListeTemizleBtn) {
+        gunListeTemizleBtn.addEventListener('click', () => {
+            if (confirm(`${seciliGun} ${ayIsimleri[takvimAy]} ${takvimYil} tarihindeki tüm kayıtları silmek istediğinizden emin misiniz?`)) {
+                gunListesiTemizle();
+            }
+        });
+    }
+    
+    // Add event listeners for individual delete buttons
+    gunMuayeneListesi.querySelectorAll('.gun-hasta-sil-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tc = btn.dataset.tc;
+            gundenHastaSil(tc);
+        });
+    });
+}
+
+function gundenHastaSil(tc) {
+    const kayitlar = muayeneKayitlariGetir();
+    const yeniKayitlar = kayitlar.filter(k => {
+        const kTarih = new Date(k.tarih);
+        const ayniGun = kTarih.getFullYear() === takvimYil &&
+                       kTarih.getMonth() === takvimAy &&
+                       kTarih.getDate() === seciliGun;
+        // Remove only if it's the same day and same TC
+        return !(ayniGun && k.tc === tc);
+    });
+    
+    muayeneKayitlariKaydet(yeniKayitlar);
+    takvimCiz();
+    gunDetayGoster();
+}
+
+function gunListesiTemizle() {
+    const kayitlar = muayeneKayitlariGetir();
+    const yeniKayitlar = kayitlar.filter(k => {
+        const kTarih = new Date(k.tarih);
+        // Keep only records that are NOT from the selected day
+        return !(kTarih.getFullYear() === takvimYil &&
+                 kTarih.getMonth() === takvimAy &&
+                 kTarih.getDate() === seciliGun);
+    });
+    
+    muayeneKayitlariKaydet(yeniKayitlar);
+    takvimCiz();
+    gunDetayGoster();
 }
 
 // Calendar patient search and add
@@ -967,13 +1021,11 @@ bulkImportBtn.addEventListener('click', () => {
             });
             
             if (!mevcutKayit) {
-                // Try to find patient in database
-                const dbPatient = hastalar.find(h => h.tc === result.tc);
-                
+                // Use data from parser which already has koğuş if found
                 kayitlar.push({
                     tc: result.tc,
                     adiSoyadi: result.adiSoyadi,
-                    kogus: dbPatient ? dbPatient.kogus : 'İçe Aktarılan',
+                    kogus: result.kogus || 'İçe Aktarılan',
                     tarih: result.tarih
                 });
                 eklenenSayisi++;
@@ -1003,15 +1055,16 @@ function parseBulkImportText(text) {
     
     // MBYS format pattern explanation:
     // Group 1: TC number with asterisks (e.g., 10*******34)
-    // Group 2: Full name (e.g., DOĞUKAN KUŞ)
+    // Group 2: Full name (e.g., DOĞUKAN KUŞ or ALİCAN BENER DURUKAN)
     // Group 3: Date in DD/MM/YYYY format (e.g., 11/02/2026)
     // Example line: 10*******34	MBYS		DOĞUKAN KUŞ			11/02/2026 09:20:55	İşleme Alındı
-    const linePattern = /^(\d{2}\*+\d{2})\s+\w+\s+.*?\s+([A-ZÇĞİÖŞÜ\s]+?)\s+.*?(\d{2}\/\d{2}\/\d{4})/i;
+    // The pattern captures: TC, skips MBYS and empty tabs, captures name, then captures date
+    const linePattern = /^(\d{2}\*+\d{2})\s+MBYS\s+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ\s]*?)\s+(\d{2}\/\d{2}\/\d{4})/i;
     
     lines.forEach(line => {
         const match = line.match(linePattern);
         if (match) {
-            const tcPartial = match[1];  // TC with asterisks
+            const tcPartial = match[1];  // TC with asterisks (e.g., 18*******76)
             const adiSoyadi = match[2].trim();  // Full name
             const tarihStr = match[3];  // Date string
             
@@ -1023,21 +1076,48 @@ function parseBulkImportText(text) {
                 const year = parseInt(dateParts[2]);
                 const tarih = new Date(year, month, day);
                 
-                // Try to find patient by name to get full TC
+                // Try to find patient by name and TC partial match
                 let tc = tcPartial;
-                const dbPatient = hastalar.find(h => 
+                let foundPatient = null;
+                
+                // Extract TC prefix and suffix from partial TC (e.g., 18*******76 -> prefix: 18, suffix: 76)
+                const tcPrefix = tcPartial.substring(0, 2);
+                const tcSuffix = tcPartial.substring(tcPartial.length - 2);
+                
+                // Find all patients with matching name
+                const matchingByName = hastalar.filter(h => 
                     turkishLowerCase(h.adiSoyadi) === turkishLowerCase(adiSoyadi)
                 );
                 
-                if (dbPatient) {
-                    tc = dbPatient.tc;
+                if (matchingByName.length === 1) {
+                    // Single match by name - use it
+                    foundPatient = matchingByName[0];
+                } else if (matchingByName.length > 1) {
+                    // Multiple matches - use TC partial to disambiguate
+                    foundPatient = matchingByName.find(h => 
+                        h.tc.startsWith(tcPrefix) && h.tc.endsWith(tcSuffix)
+                    );
                 }
                 
-                results.push({
-                    tc: tc,
-                    adiSoyadi: adiSoyadi,
-                    tarih: tarih.toISOString()
-                });
+                if (foundPatient) {
+                    tc = foundPatient.tc;
+                    results.push({
+                        tc: tc,
+                        adiSoyadi: foundPatient.adiSoyadi,
+                        kogus: foundPatient.kogus,
+                        babaAdi: foundPatient.babaAdi || '',
+                        dogumYeriTarihi: foundPatient.dogumYeriTarihi || '',
+                        tarih: tarih.toISOString()
+                    });
+                } else {
+                    // Not found in database - add with partial info
+                    results.push({
+                        tc: tcPartial,
+                        adiSoyadi: adiSoyadi,
+                        kogus: 'İçe Aktarılan',
+                        tarih: tarih.toISOString()
+                    });
+                }
             }
         }
     });

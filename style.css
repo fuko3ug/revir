@@ -936,3 +936,24 @@ body.dark-theme .help-content code {
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
 }
+
+/* Calendar day actions */
+.gun-liste-actions {
+    margin-bottom: 15px;
+    text-align: right;
+}
+
+.gun-hasta-sil-btn {
+    padding: 4px 12px;
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.3s ease;
+}
+
+.gun-hasta-sil-btn:hover {
+    background-color: #c0392b;
+}
