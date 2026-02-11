@@ -842,10 +842,6 @@ body.dark-theme .help-content code {
     }
 
     /* Calendar day print styles */
-    #calendarPrintContainer {
-        display: block !important;
-    }
-
     .calendar-print-header {
         text-align: center;
         margin-bottom: 15px;
@@ -862,6 +858,10 @@ body.dark-theme .help-content code {
     .calendar-print-date {
         font-size: 10pt;
         color: #555;
+    }
+
+    #calendarPrintContainer {
+        display: block !important;
     }
 
     #calendarPrintContainer table {
@@ -891,13 +891,8 @@ body.dark-theme .help-content code {
         display: none !important;
     }
 
-    /* Hide calendar print container normally */
-    #calendarPrintContainer {
-        display: none;
-    }
-
-    /* Hide main app when printing calendar */
-    body:has(#calendarPrintContainer) .container {
+    /* Hide main app when printing calendar day */
+    .container {
         display: none !important;
     }
 }
