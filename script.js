@@ -48,18 +48,15 @@ async function loadBothFiles() {
                 return item && typeof item === 'object' && item.tc && item.adiSoyadi && item.kogus;
             });
         } else {
-            // Fallback: Load hastalar.json via fetch
-            const jsonText = await loadLocalFile('hastalar.json');
-            parseJsonText(jsonText);
-        }
-
-        // Try loading tasnif.xml but don't fail if unavailable
-        // (JSON already contains the same patient data)
-        try {
-            const xmlText = await loadLocalFile('tasnif.xml');
-            parseXmlText(xmlText);
-        } catch (xmlErr) {
-            // XML is optional when JSON/pre-loaded data is available
+            // Fallback: Load files via fetch (only when pre-loaded data is not available)
+            try {
+                const xmlText = await loadLocalFile('tasnif.xml');
+                parseXmlText(xmlText);
+            } catch (xmlErr) {
+                // If XML fails, try JSON as fallback
+                const jsonText = await loadLocalFile('hastalar.json');
+                parseJsonText(jsonText);
+            }
         }
         
         if (hastalar.length === 0) {
@@ -497,17 +494,15 @@ loadBothFilesBtn.addEventListener('click', async () => {
                 return item && typeof item === 'object' && item.tc && item.adiSoyadi && item.kogus;
             });
         } else {
-            // Fallback: Load hastalar.json via fetch
-            const jsonText = await loadLocalFile('hastalar.json');
-            parseJsonText(jsonText);
-        }
-        
-        // Try loading tasnif.xml but don't fail if unavailable
-        try {
-            const xmlText = await loadLocalFile('tasnif.xml');
-            parseXmlText(xmlText);
-        } catch (xmlErr) {
-            // XML is optional when JSON/pre-loaded data is available
+            // Fallback: Load files via fetch (only when pre-loaded data is not available)
+            try {
+                const xmlText = await loadLocalFile('tasnif.xml');
+                parseXmlText(xmlText);
+            } catch (xmlErr) {
+                // If XML fails, try JSON as fallback
+                const jsonText = await loadLocalFile('hastalar.json');
+                parseJsonText(jsonText);
+            }
         }
         
         if (hastalar.length === 0) {
